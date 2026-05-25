@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}로그인 - LeadFlow B2B 영업 자동화 플랫폼{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+  <div class="auth-header">
+    <div class="brand-icon auth-logo">LF</div>
+    <h1 class="auth-title">LeadFlow 시작하기</h1>
+    <p class="auth-subtitle">B2B 리드 수집 및 영업 자동화 파이프라인 플랫폼</p>
+  </div>
+
+  <!-- 안내 메시지 또는 에러 메시지 표시 -->
+  {% if info_msg %}
+  <div class="alert alert-success">
+    {{ info_msg }}
+  </div>
+  {% endif %}
+
+  {% if error %}
+  <div class="alert alert-error">
+    {{ error }}
+  </div>
+  {% endif %}
+
+  <form action="/login" method="post">
+    <div class="form-group">
+      <label for="email" class="form-label">이메일 주소</label>
+      <input type="email" id="email" name="email" class="form-input" placeholder="name@company.com" required autocomplete="username">
+    </div>
+
+    <div class="form-group">
+      <label for="password" class="form-label">비밀번호</label>
+      <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; height: 48px;">
+      <i data-lucide="log-in" style="width: 18px; height: 18px;"></i>
+      <span>로그인</span>
+    </button>
+  </form>
+
+  <div class="auth-footer">
+    <span>계정이 없으신가요?</span>
+    <a href="/signup">회원가입하기</a>
+  </div>
+</div>
+{% endblock %}

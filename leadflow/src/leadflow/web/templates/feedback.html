@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% set active_page = 'feedback' %}
+
+{% block title %}이슈 및 피드백 - LeadFlow B2B 영업 자동화 플랫폼{% endblock %}
+
+{% block extra_head %}
+<style>
+  .feedback-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 400px;
+  }
+  .feedback-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    position: relative;
+  }
+  .feedback-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .feedback-card.done-card {
+    background: rgba(248, 250, 252, 0.6);
+    border-left: 4px solid var(--success);
+  }
+  .feedback-card.todo-card {
+    border-left: 4px solid var(--primary);
+  }
+  .issue-text {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text-main);
+    white-space: pre-wrap;
+  }
+  .done-card .issue-text {
+    color: var(--text-light);
+    text-decoration: line-through;
+  }
+  .btn-check-issue {
+    background: var(--primary-light);
+    color: var(--primary);
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+  }
+  .btn-check-issue:hover {
+    background: var(--primary);
+    color: white;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">검수 이슈 및 피드백 관리</h1>
+  <p class="page-desc">데모 버전 검수 직원들이 플로팅 챗봇을 통해 제출한 개선사항, 버그, 건의의견 목록을 대표님이 직접 관리하고 해결 단계를 체크합니다.</p>
+</div>
+
+<!-- 실시간 요약 메트릭 -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+  <div class="card" style="margin-bottom: 0; padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+    <div style="background: var(--primary-light); color: var(--primary); width: 44px; height: 44px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
+      <i data-lucide="help-circle" style="width: 22px; height: 22px;"></i>
+    </div>
+    <div>
+      <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500; display: block; margin-bottom: 2px;">해결 대기 이슈</span>
+      <strong id="todo-count" style="font-size: 1.6rem; color: var(--text-main); font-family: 'Outfit', sans-serif;">{{ todo_list|length }}건</strong>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 0; padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+    <div style="background: #ecfdf5; color: #10b981; width: 44px; height: 44px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
+      <i data-lucide="check-circle" style="width: 22px; height: 22px;"></i>
+    </div>
+    <div>
+      <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500; display: block; margin-bottom: 2px;">개선 완료 이슈</span>
+      <strong id="done-count" style="font-size: 1.6rem; color: #10b981; font-family: 'Outfit', sans-serif;">{{ done_list|length }}건</strong>
+    </div>
+  </div>
+</div>
+
+<!-- 2단 컬럼 칸반 레이아웃 -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 2rem;">
+  <!-- 좌측 컬럼: Todo -->
+  <section class="card" style="margin-bottom: 0;">
+    <h2 class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+      <i data-lucide="alert-circle" style="width: 20px; height: 20px; color: var(--primary);"></i>
+      해결할 개선 & 버그 대기열 ({{ todo_list|length }}건)
+    </h2>
+    
+    <div id="todo-column" class="feedback-column">
+      {% if todo_list %}
+        {% for issue in todo_list %}
+        <div id="issue-card-{{ issue.id }}" class="feedback-card todo-card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 700; font-size: 0.85rem; color: var(--primary); display: inline-flex; align-items: center; gap: 4px;">
+              <i data-lucide="user" style="width: 12px; height: 12px;"></i>
+              {{ issue.reporter_name }} (검수자)
+            </span>
+            <span style="font-size: 0.75rem; color: var(--text-light);">
+              {{ issue.created_at.strftime('%m-%d %H:%M') }}
+            </span>
+          </div>
+          
+          <div class="issue-text">{{ issue.content }}</div>
+          
+          <div style="text-align: right; margin-top: 0.25rem;">
+            <button onclick="resolveIssue({{ issue.id }})" class="btn-check-issue">
+              <i data-lucide="check" style="width: 13px; height: 13px;"></i>
+              <span>개선 완료(체크)</span>
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div id="todo-empty-plate" style="text-align: center; padding: 4rem 1rem; color: var(--text-muted);">
+          <i data-lucide="party-popper" style="width: 48px; height: 48px; stroke-width: 1.5; color: var(--text-light); margin-bottom: 1rem;"></i>
+          <p style="font-size: 0.95rem; font-weight: 500;">모든 피드백이 해결 완료되었습니다!</p>
+          <p style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.25rem;">현재 대기 중인 검수 이슈가 전혀 없습니다.</p>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- 우측 컬럼: Done -->
+  <section class="card" style="margin-bottom: 0;">
+    <h2 class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+      <i data-lucide="check-check" style="width: 20px; height: 20px; color: var(--success);"></i>
+      개발 및 반영 완료 목록 ({{ done_list|length }}건)
+    </h2>
+    
+    <div id="done-column" class="feedback-column">
+      {% if done_list %}
+        {% for issue in done_list %}
+        <div class="feedback-card done-card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 700; font-size: 0.85rem; color: var(--success); display: inline-flex; align-items: center; gap: 4px;">
+              <i data-lucide="check" style="width: 12px; height: 12px;"></i>
+              {{ issue.reporter_name }} (해결됨)
+            </span>
+            <span style="font-size: 0.75rem; color: var(--text-light);">
+              {{ issue.updated_at.strftime('%m-%d %H:%M') }}
+            </span>
+          </div>
+          
+          <div class="issue-text">{{ issue.content }}</div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div id="done-empty-plate" style="text-align: center; padding: 4rem 1rem; color: var(--text-muted);">
+          <i data-lucide="hourglass" style="width: 48px; height: 48px; stroke-width: 1.5; color: var(--text-light); margin-bottom: 1rem;"></i>
+          <p style="font-size: 0.95rem; font-weight: 500;">완료된 내역이 없습니다.</p>
+          <p style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.25rem;">검수 이슈 대기열에서 해결 버튼을 눌러 해결 처리해 보세요.</p>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  async function resolveIssue(id) {
+    try {
+      const formData = new FormData();
+      formData.append("status", "done");
+      
+      const resp = await fetch(`/api/feedback/${id}/status`, {
+        method: "POST",
+        body: formData
+      });
+      
+      if (!resp.ok) {
+        throw new Error("서버 상태 반영 실패");
+      }
+      
+      const res = await resp.json();
+      
+      const card = document.getElementById(`issue-card-${id}`);
+      if (!card) return;
+      
+      card.className = "feedback-card done-card";
+      const checkBtn = card.querySelector("div[style*='text-align: right']");
+      if (checkBtn) checkBtn.remove();
+      
+      const reporterSpan = card.querySelector("span[style*='font-weight: 700']");
+      if (reporterSpan) {
+        reporterSpan.style.color = "var(--success)";
+        reporterSpan.innerHTML = `<i data-lucide="check" style="width: 12px; height: 12px; display:inline; vertical-align:middle; margin-right:3px;"></i>${reporterSpan.textContent.replace('(검수자)', '').trim()} (해결됨)`;
+      }
+      
+      const todoCol = document.getElementById("todo-column");
+      const doneCol = document.getElementById("done-column");
+      const todoEmpty = document.getElementById("todo-empty-plate");
+      const doneEmpty = document.getElementById("done-empty-plate");
+      
+      if (doneEmpty) doneEmpty.remove();
+      
+      if (doneCol) {
+        doneCol.insertBefore(card, doneCol.firstChild);
+      }
+      
+      const todoCountVal = parseInt(document.getElementById("todo-count").textContent);
+      const doneCountVal = parseInt(document.getElementById("done-count").textContent);
+      
+      document.getElementById("todo-count").textContent = (todoCountVal - 1) + "건";
+      document.getElementById("done-count").textContent = (doneCountVal + 1) + "건";
+      
+      if (todoCol && todoCol.children.length === 0) {
+        const emptyHtml = `
+          <div id="todo-empty-plate" style="text-align: center; padding: 4rem 1rem; color: var(--text-muted);">
+            <i data-lucide="party-popper" style="width: 48px; height: 48px; stroke-width: 1.5; color: var(--text-light); margin-bottom: 1rem;"></i>
+            <p style="font-size: 0.95rem; font-weight: 500;">모든 피드백이 해결 완료되었습니다!</p>
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.25rem;">현재 대기 중인 검수 이슈가 전혀 없습니다.</p>
+          </div>
+        `;
+        todoCol.innerHTML = emptyHtml;
+      }
+      
+      // 사이드바 미처리 알림 뱃지 실시간 동적 차감/동기화 트리거
+      if (typeof window.updateFeedbackBadge === "function") {
+        window.updateFeedbackBadge();
+      }
+      
+      lucide.createIcons();
+      
+    } catch (err) {
+      alert("이슈 해결 처리에 실패했습니다. " + err.message);
+    }
+  }
+</script>
+{% endblock %}

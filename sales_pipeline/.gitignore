@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# 환경
+.env
+.venv/
+venv/
+
+# 데이터
+data/
+*.db
+
+# 인증 파일
+config/gmail_credentials.json
+config/gmail_token.json
+config/sheets_service_account.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store

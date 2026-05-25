@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% set active_page = 'settings' %}
+
+{% block title %}설정 및 연동 - LeadFlow B2B 영업 자동화 플랫폼{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">설정 및 연동</h1>
+  <p class="page-desc">영업 자동화를 가동하기 위한 핵심 API 자격증명 및 발송처를 통합 관리합니다.</p>
+</div>
+
+<!-- 알림 메시지 배너 -->
+{% if success_msg %}
+<div class="alert alert-success" style="display: flex; align-items: flex-start; gap: 0.75rem; line-height: 1.5;">
+  <i data-lucide="check-circle" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;"></i>
+  <div>
+    <strong>설정 반영 완료!</strong><br>
+    {{ success_msg }}
+  </div>
+</div>
+{% endif %}
+
+{% if error_msg %}
+<div class="alert alert-error" style="display: flex; align-items: flex-start; gap: 0.75rem; line-height: 1.5;">
+  <i data-lucide="alert-circle" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;"></i>
+  <div>
+    <strong>설정 저장 중 오류 발생</strong><br>
+    {{ error_msg }}
+  </div>
+</div>
+{% endif %}
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; align-items: start;">
+  <!-- 설정 편집 폼 -->
+  <section class="card" style="margin-bottom: 0;">
+    <h2 class="card-title">
+      <i data-lucide="sliders" style="width: 20px; height: 20px; color: var(--primary);"></i>
+      API 연동 및 발송정보 설정
+    </h2>
+    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 2rem;">
+      모든 입력값은 타인에게 절대 노출되지 않으며, 저장 시 각 사용자의 유니크한 내부 암호 키를 기반으로 강력히 암호화 격리됩니다.
+    </p>
+
+    <form action="/settings" method="post" style="display: flex; flex-direction: column; gap: 1.5rem;">
+      <!-- OpenAI 설정 -->
+      <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem;">
+        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 6px;">
+          <span style="display: inline-block; width: 6px; height: 6px; background-color: var(--primary); border-radius: 50%;"></span>
+          AI 엔진 설정 (OpenAI)
+        </h3>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="openai_key" class="form-label">OpenAI API Key (sk-...)</label>
+          <input type="password" id="openai_key" name="openai_key" class="form-input" 
+                 placeholder="{% if creds.openai_key %}{{ creds.openai_key }}{% else %}sk-proj-... 형태로 입력해 주세요{% endif %}" 
+                 value="{% if creds.openai_key %}{{ creds.openai_key }}{% endif %}">
+          <span style="font-size: 0.75rem; color: var(--text-light); margin-top: 0.25rem; display: block;">
+            수집된 영업 리드의 업체 정보를 파악하여 맞춤형 메일 초안을 지능적으로 생성할 때 사용합니다.
+          </span>
+        </div>
+      </div>
+
+      <!-- 이메일 발신처 정보 설정 -->
+      <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem;">
+        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 6px;">
+          <span style="display: inline-block; width: 6px; height: 6px; background-color: var(--primary); border-radius: 50%;"></span>
+          이메일 발신처 설정
+        </h3>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="sender_name" class="form-label">발신자 명 (Sender Name)</label>
+            <input type="text" id="sender_name" name="sender_name" class="form-input" 
+                   placeholder="예: 홍길동 팀장" value="{{ creds.sender_name }}">
+          </div>
+          
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="sender_email" class="form-label">발신 이메일 주소 (Gmail)</label>
+            <input type="email" id="sender_email" name="sender_email" class="form-input" 
+                   placeholder="예: user@gmail.com" value="{{ creds.sender_email }}">
+          </div>
+        </div>
+        <span style="font-size: 0.75rem; color: var(--text-light); margin-top: 0.5rem; display: block;">
+          콜드 메일을 보낼 때 보낸이 정보로 노출되는 이메일 및 발송자 이름입니다.
+        </span>
+      </div>
+
+      <!-- Google Sheets CRM 설정 -->
+      <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem;">
+        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 6px;">
+          <span style="display: inline-block; width: 6px; height: 6px; background-color: var(--primary); border-radius: 50%;"></span>
+          CRM 시트 실시간 연동 (Google Sheets)
+        </h3>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="sheets_name" class="form-label">구글 스프레드시트 이름</label>
+          <input type="text" id="sheets_name" name="sheets_name" class="form-input" 
+                 placeholder="예: LeadFlow_영업_현황판" value="{{ creds.sheets_name }}">
+          <span style="font-size: 0.75rem; color: var(--text-light); margin-top: 0.25rem; display: block;">
+            고객이 콜드메일에 회신하거나 영업 상태 변경 시 실시간으로 로그를 적재하고 관리하는 통합 구글 시트명입니다.
+          </span>
+        </div>
+      </div>
+
+      <!-- 네이버 API 확장 설정 (선택사항) -->
+      <div>
+        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 6px;">
+          <span style="display: inline-block; width: 6px; height: 6px; background-color: var(--primary); border-radius: 50%;"></span>
+          네이버 검색 검색 API 연동 (선택)
+        </h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="naver_id" class="form-label">Naver Client ID</label>
+            <input type="text" id="naver_id" name="naver_id" class="form-input" 
+                   placeholder="Naver Client ID를 입력하세요" value="{{ creds.naver_id }}">
+          </div>
+          
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="naver_secret" class="form-label">Naver Client Secret</label>
+            <input type="password" id="naver_secret" name="naver_secret" class="form-input" 
+                   placeholder="Naver Client Secret" value="{% if creds.naver_secret %}{{ creds.naver_secret }}{% endif %}">
+          </div>
+        </div>
+        <span style="font-size: 0.75rem; color: var(--text-light); margin-top: 0.5rem; display: block;">
+          기본 수집 외에 네이버 오픈 API 검색 통계를 사용하거나 쿼터 확장을 원하실 때 추가 등록합니다.
+        </span>
+      </div>
+
+      <!-- 저장 버튼 -->
+      <div style="text-align: right; margin-top: 1rem;">
+        <button type="submit" class="btn btn-primary" style="padding: 0.85rem 2.5rem;">
+          <i data-lucide="save" style="width: 18px; height: 18px;"></i>
+          <span>설정값 저장 및 연동 완료</span>
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- 보안 및 상태 사이드 카드 -->
+  <aside style="display: flex; flex-direction: column; gap: 2rem;">
+    <!-- 자격증명 보안 보장 카드 -->
+    <section class="card" style="margin-bottom: 0; background-color: rgba(79, 70, 229, 0.02); border-color: rgba(79, 70, 229, 0.1);">
+      <h2 class="card-title" style="color: var(--primary);">
+        <i data-lucide="shield-check" style="width: 20px; height: 20px;"></i>
+        데이터 격리 및 보안
+      </h2>
+      <ul style="font-size: 0.85rem; color: var(--text-muted); padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; line-height: 1.6;">
+        <li>
+          <strong>100% 대칭키 암호화</strong><br>
+          모든 API 키와 패스워드는 AES-256과 Bcrypt를 사용하여 물리적으로 완전 격리 암호화 처리됩니다.
+        </li>
+        <li>
+          <strong>세션 격리</strong><br>
+          로그인 후 발급되는 토큰은 HTTP-Only 쿠키 방식으로 브라우저 XSS 보안 탈취 위협을 원천 봉쇄합니다.
+        </li>
+        <li>
+          <strong>철저한 마스킹</strong><br>
+          저장된 키 정보는 화면에 절대 평문으로 노출되지 않도록 전후방 마스킹 보안 마크 처리되어 안전합니다.
+        </li>
+      </ul>
+    </section>
+
+    <!-- 구글 Gmail OAuth 토큰 상태 -->
+    <section class="card" style="margin-bottom: 0;">
+      <h2 class="card-title">
+        <i data-lucide="mail" style="width: 20px; height: 20px; color: var(--secondary);"></i>
+        Gmail 연동 및 연동 상태
+      </h2>
+      
+      <div style="text-align: center; padding: 1.5rem 0.5rem;">
+        <div style="width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background-color: {% if creds.gmail_connected %}var(--success-light){% else %}#fee2e2{% endif %}; color: {% if creds.gmail_connected %}var(--success){% else %}var(--danger){% endif %}; margin: 0 auto 1rem auto;">
+          <i data-lucide="{% if creds.gmail_connected %}check-circle-2{% else %}x-circle{% endif %}" style="width: 32px; height: 32px;"></i>
+        </div>
+        
+        <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.25rem;">
+          {% if creds.gmail_connected %}Gmail OAuth 연동 완료{% else %}Gmail 연동 필요{% endif %}
+        </h4>
+        <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 1.5rem;">
+          {% if creds.gmail_connected %}
+          Gmail 발송용 토큰이 유효하게 등록되었습니다. 리드 대상 콜드 메일 및 드립 캠페인이 즉각 발송 가능합니다.
+          {% else %}
+          자동 콜드메일 발송 기능을 연동하기 위해 서버 가동 시 `config/gmail_credentials.json` OAuth 자격증명이 필요합니다.
+          {% endif %}
+        </p>
+      </div>
+    </section>
+  </aside>
+</div>
+{% endblock %}

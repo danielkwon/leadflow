@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+
+{% set active_page = 'scrape' %}
+
+{% block title %}리드 수집 - LeadFlow B2B 영업 자동화 플랫폼{% endblock %}
+
+{% block extra_head %}
+<style>
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .spinner-icon {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+    vertical-align: middle;
+  }
+  /* 2줄 테이블 스타일 보강 */
+  .custom-table tbody tr:nth-child(4n+1), 
+  .custom-table tbody tr:nth-child(4n+2) {
+    background-color: #ffffff;
+  }
+  .custom-table tbody tr:nth-child(4n+3), 
+  .custom-table tbody tr:nth-child(4n+4) {
+    background-color: rgba(248, 250, 252, 0.4);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">리드 수집</h1>
+  <p class="page-desc">원하는 지역과 키워드(예: 서울 인력사무소, 경기 건설사)를 조합하여 네이버 지도 기반 실시간 영업 DB를 수집합니다.</p>
+</div>
+
+<!-- 알림 메시지 배너 -->
+<div id="alert-success-banner" class="alert alert-success" style="display: {% if success_msg %}flex{% else %}none{% endif %}; align-items: flex-start; gap: 0.75rem; line-height: 1.5; margin-bottom: 1.5rem;">
+  <i data-lucide="bell" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;"></i>
+  <div>
+    <strong>수집 요청 완료!</strong><br>
+    <span id="alert-success-text">{{ success_msg or '' }}</span>
+  </div>
+</div>
+
+<div id="alert-error-banner" class="alert alert-error" style="display: {% if error_msg %}flex{% else %}none{% endif %}; align-items: flex-start; gap: 0.75rem; line-height: 1.5; margin-bottom: 1.5rem;">
+  <i data-lucide="alert-octagon" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;"></i>
+  <div>
+    <strong>수집 중 실패 발생</strong><br>
+    <span id="alert-error-text">{{ error_msg or '' }}</span>
+  </div>
+</div>
+
+<!-- 실시간 수집 크롤러 제어판 카드 -->
+<section class="card">
+  <h2 class="card-title">
+    <i data-lucide="terminal" style="width: 20px; height: 20px; color: var(--primary);"></i>
+    실시간 타깃 수집기 설정
+  </h2>
+  <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+    수집은 Playwright 헤드리스 브라우저 환경에서 실제 사람이 탐색하는 듯한 자연스러운 인터랙션 방식을 통해 완전 자동 크롤링됩니다.
+  </p>
+  
+  <form class="scrape-controls">
+    <div class="form-group" style="margin-bottom: 0;">
+      <label for="region" class="form-label">대상 지역</label>
+      <input type="text" id="region" name="region" class="form-input" placeholder="예: 서울, 강남구, 경기도 분당" required>
+    </div>
+    
+    <div class="form-group" style="margin-bottom: 0;">
+      <label for="keyword" class="form-label">영업 타깃 키워드</label>
+      <input type="text" id="keyword" name="keyword" class="form-input" placeholder="예: 건설사, 인력사무소, 시공사" required>
+    </div>
+    
+    <div class="form-group" style="margin-bottom: 0;">
+      <label for="max_results" class="form-label">최대 수집 건수</label>
+      <select id="max_results" name="max_results" class="form-input">
+        <option value="10">10개 (빠른 테스트)</option>
+        <option value="30" selected>30개 (추천)</option>
+        <option value="50">50개</option>
+        <option value="100">100개</option>
+      </select>
+    </div>
+    
+    <button type="submit" class="btn btn-primary" style="height: 45px; display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap;">
+      <i data-lucide="play-circle" style="width: 18px; height: 18px;"></i>
+      <span>수집 실행</span>
+    </button>
+  </form>
+</section>
+
+<!-- 실시간 수집 진행 상황 감시용 프로그래스 플레이트 카드 -->
+<section id="progress-card" class="card" style="display: none; border: 1.5px solid var(--primary); background: rgba(79, 70, 229, 0.02); margin-bottom: 2rem;">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+    <h2 class="card-title" style="margin-bottom: 0; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+      <span class="spinner-icon">
+        <i data-lucide="loader-2" style="width: 20px; height: 20px; color: var(--primary);"></i>
+      </span>
+      <span>네이버 지도 실시간 크롤링 중...</span>
+    </h2>
+    <span id="progress-percentage" style="font-weight: 700; color: var(--primary); font-family: 'Outfit', sans-serif; font-size: 1.1rem;">0%</span>
+  </div>
+  
+  <div style="background: var(--primary-light); height: 12px; border-radius: 6px; overflow: hidden; margin-bottom: 1rem; border: 1px solid var(--border-color);">
+    <div id="progress-bar-fill" style="background: linear-gradient(90deg, var(--primary), var(--secondary)); width: 0%; height: 100%; transition: width 0.3s ease;"></div>
+  </div>
+  
+  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+    <span id="progress-message" style="color: var(--text-muted); font-weight: 500;">Playwright 가상 브라우저 인스턴스를 준비하는 중...</span>
+    <span style="color: var(--text-main); font-weight: 600;">
+      <span id="progress-added-count">0</span> / <span id="progress-max-count">30</span> 건 발견됨
+    </span>
+  </div>
+</section>
+
+<!-- 수집된 전체 리드 현황판 -->
+<section class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <!-- 버그 수정: 고유 ID leads-title 매핑 부여 -->
+    <h2 id="leads-title" class="card-title" style="margin-bottom: 0;">
+      <i data-lucide="database" style="width: 20px; height: 20px; color: var(--primary);"></i>
+      수집된 영업 데이터베이스 (총 {{ total_scraped }}건)
+    </h2>
+    <button onclick="reloadLeadsTable();" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;">
+      <i data-lucide="refresh-cw" style="width: 12px; height: 12px;"></i>
+      <span>실시간 갱신</span>
+    </button>
+  </div>
+  
+  <!-- 가독성이 200% 극대화되는 2줄 테이블 레이아웃 -->
+  <div class="table-container" style="{% if not leads %}display: none;{% endif %}">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th style="width: 25%;">영업 타깃 업체명</th>
+          <th style="width: 35%;">연락처 & 이메일</th>
+          <th style="width: 25%;">지역 및 카테고리</th>
+          <th style="text-align: right; width: 15%;">영업 상태</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if leads %}
+          {% for lead in leads %}
+          <!-- 1번째 줄: 기본 인적 사항 -->
+          <tr style="border-bottom: none;">
+            <td style="font-weight: 700; font-size: 1.05rem; color: var(--text-main); padding-bottom: 0.25rem;">
+              {% if lead.naver_link %}
+              <a href="{{ lead.naver_link }}" target="_blank" style="color: var(--text-main); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                {{ lead.company_name }}
+                <i data-lucide="external-link" style="width: 13px; height: 13px; color: var(--text-light);"></i>
+              </a>
+              {% else %}
+              {{ lead.company_name }}
+              {% endif %}
+            </td>
+            <td style="padding-bottom: 0.25rem;">
+              <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.9rem;">
+                <span style="font-weight: 600; color: var(--text-main); display: inline-flex; align-items: center; gap: 4px;">
+                  <i data-lucide="phone" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+                  {{ format_phone_number(lead.phone) or '-' }}
+                </span>
+                <span style="color: var(--primary); font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                  <i data-lucide="mail" style="width: 14px; height: 14px; color: var(--primary);"></i>
+                  {% if lead.email %}{{ lead.email }}{% else %}<span style="color: var(--text-light); font-style: italic; font-size: 0.8rem;">이메일 없음</span>{% endif %}
+                </span>
+              </div>
+            </td>
+            <td style="padding-bottom: 0.25rem;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 0.75rem; color: var(--text-light); font-weight: 600; background: var(--bg-primary); padding: 2px 8px; border-radius: 4px;">{{ lead.region }}</span>
+                <span class="badge badge-contacted" style="font-size: 0.7rem; padding: 2px 8px;">{{ lead.category }}</span>
+              </div>
+            </td>
+            <td style="text-align: right; padding-bottom: 0.25rem;">
+              {% if lead.status == 'new' %}
+              <span class="badge badge-new">신규 리드</span>
+              {% elif lead.status == 'replied' %}
+              <span class="badge badge-replied">회신 완료</span>
+              {% else %}
+              <span class="badge badge-contacted">{{ lead.status }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          <!-- 2번째 줄: 주소 및 웹사이트 상세 레이어 -->
+          <tr style="border-top: none; background: rgba(248, 250, 252, 0.35);">
+            <td colspan="4" style="padding-top: 0.25rem; padding-bottom: 0.85rem; font-size: 0.85rem; color: var(--text-muted);">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 2rem;">
+                <span style="display: inline-flex; align-items: center; gap: 4px;">
+                  <i data-lucide="map-pin" style="width: 13px; height: 13px; color: var(--text-light);"></i>
+                  {{ lead.road_address or lead.address or '주소 정보가 존재하지 않습니다.' }}
+                </span>
+                
+                {% if lead.website_url %}
+                <a href="{{ lead.website_url }}" target="_blank" style="color: var(--secondary); text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 2px; font-size: 0.8rem;">
+                  <i data-lucide="globe" style="width: 13px; height: 13px;"></i>
+                  <span>웹사이트 방문하기</span>
+                  <i data-lucide="arrow-up-right" style="width: 10px; height: 10px;"></i>
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <div id="empty-leads-plate" style="{% if leads %}display: none;{% endif %} text-align: center; padding: 4rem 1rem; color: var(--text-muted);">
+    <i data-lucide="alert-circle" style="width: 48px; height: 48px; stroke-width: 1.5; color: var(--text-light); margin-bottom: 1rem;"></i>
+    <p style="font-size: 0.95rem; font-weight: 500;">수집된 데이터베이스가 비어있습니다.</p>
+    <p style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.25rem;">위 설정기에서 검색할 지역과 타깃 키워드를 입력하고 수집을 요청해 보세요.</p>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  let pollInterval = null;
+
+  async function reloadLeadsTable() {
+    try {
+      const resp = await fetch("/api/scrape/leads");
+      if (!resp.ok) return;
+      const leads = await resp.json();
+      
+      const tbody = document.querySelector(".custom-table tbody");
+      const tableContainer = document.querySelector(".table-container");
+      const emptyPlate = document.getElementById("empty-leads-plate");
+      
+      // 버그 수정: 고유 ID leads-title 갱신 제어 완수
+      const countTitle = document.getElementById("leads-title");
+      if (countTitle) {
+        countTitle.innerHTML = `
+          <i data-lucide="database" style="width: 20px; height: 20px; color: var(--primary);"></i>
+          수집된 영업 데이터베이스 (총 ${leads.length}건)
+        `;
+      }
+      
+      if (leads.length === 0) {
+        if (tableContainer) tableContainer.style.display = "none";
+        if (emptyPlate) emptyPlate.style.display = "block";
+        return;
+      }
+      
+      if (emptyPlate) emptyPlate.style.display = "none";
+      if (tableContainer) tableContainer.style.display = "block";
+      
+      let html = "";
+      leads.forEach(lead => {
+        const naverLinkHtml = lead.naver_link 
+          ? `<a href="${lead.naver_link}" target="_blank" style="color: var(--text-main); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+              ${lead.company_name}
+              <i data-lucide="external-link" style="width: 13px; height: 13px; color: var(--text-light);"></i>
+             </a>`
+          : lead.company_name;
+          
+        const websiteHtml = lead.website_url
+          ? `<a href="${lead.website_url}" target="_blank" style="color: var(--secondary); text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 2px; font-size: 0.8rem;">
+              <i data-lucide="globe" style="width: 13px; height: 13px;"></i>
+              <span>웹사이트 방문하기</span>
+              <i data-lucide="arrow-up-right" style="width: 10px; height: 10px;"></i>
+             </a>`
+          : '';
+          
+        const statusHtml = lead.status === 'new'
+          ? `<span class="badge badge-new">신규 리드</span>`
+          : (lead.status === 'replied' ? `<span class="badge badge-replied">회신 완료</span>` : `<span class="badge badge-contacted">${lead.status}</span>`);
+
+        html += `
+          <!-- 1번째 줄: 기본 인적 사항 -->
+          <tr style="border-bottom: none;">
+            <td style="font-weight: 700; font-size: 1.05rem; color: var(--text-main); padding-bottom: 0.25rem;">
+              ${naverLinkHtml}
+            </td>
+            <td style="padding-bottom: 0.25rem;">
+              <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.9rem;">
+                <span style="font-weight: 600; color: var(--text-main); display: inline-flex; align-items: center; gap: 4px;">
+                  <i data-lucide="phone" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+                  ${lead.phone || '-'}
+                </span>
+                <span style="color: var(--primary); font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                  <i data-lucide="mail" style="width: 14px; height: 14px; color: var(--primary);"></i>
+                  ${lead.email ? lead.email : `<span style="color: var(--text-light); font-style: italic; font-size: 0.8rem;">이메일 없음</span>`}
+                </span>
+              </div>
+            </td>
+            <td style="padding-bottom: 0.25rem;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 0.75rem; color: var(--text-light); font-weight: 600; background: var(--bg-primary); padding: 2px 8px; border-radius: 4px;">${lead.region}</span>
+                <span class="badge badge-contacted" style="font-size: 0.7rem; padding: 2px 8px;">${lead.category}</span>
+              </div>
+            </td>
+            <td style="text-align: right; padding-bottom: 0.25rem;">
+              ${statusHtml}
+            </td>
+          </tr>
+          <!-- 2번째 줄: 주소 및 웹사이트 상세 레이어 -->
+          <tr style="border-top: none; background: rgba(248, 250, 252, 0.35);">
+            <td colspan="4" style="padding-top: 0.25rem; padding-bottom: 0.85rem; font-size: 0.85rem; color: var(--text-muted);">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 2rem;">
+                <span style="display: inline-flex; align-items: center; gap: 4px;">
+                  <i data-lucide="map-pin" style="width: 13px; height: 13px; color: var(--text-light);"></i>
+                  ${lead.road_address || lead.address || '주소 정보가 존재하지 않습니다.'}
+                </span>
+                ${websiteHtml ? websiteHtml : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+      
+      if (tbody) tbody.innerHTML = html;
+      lucide.createIcons();
+      
+    } catch (err) {
+      console.error("데이터 리로드 실패", err);
+    }
+  }
+
+  document.querySelector(".scrape-controls").addEventListener("submit", async function(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    
+    const submitBtn = form.querySelector("button[type='submit']");
+    if (submitBtn) submitBtn.disabled = true;
+    
+    const alertSuccess = document.getElementById("alert-success-banner");
+    const alertSuccessText = document.getElementById("alert-success-text");
+    const alertError = document.getElementById("alert-error-banner");
+    const alertErrorText = document.getElementById("alert-error-text");
+    
+    if (alertSuccess) alertSuccess.style.display = "none";
+    if (alertError) alertError.style.display = "none";
+
+    const progressCard = document.getElementById("progress-card");
+    const pPercentage = document.getElementById("progress-percentage");
+    const pBar = document.getElementById("progress-bar-fill");
+    const pMessage = document.getElementById("progress-message");
+    const pAdded = document.getElementById("progress-added-count");
+    const pMax = document.getElementById("progress-max-count");
+    
+    if (progressCard) progressCard.style.display = "block";
+    if (pPercentage) pPercentage.textContent = "0%";
+    if (pBar) {
+      pBar.style.width = "0%";
+      pBar.style.background = "linear-gradient(90deg, var(--primary), var(--secondary))";
+    }
+    if (pMessage) pMessage.textContent = "가상 헤드리스 브라우저를 백그라운드에 안착시키는 중...";
+    if (pAdded) pAdded.textContent = "0";
+    
+    const maxResults = form.querySelector("#max_results").value;
+    if (pMax) pMax.textContent = maxResults;
+    
+    try {
+      const resp = await fetch("/api/scrape/start", {
+        method: "POST",
+        body: formData
+      });
+      
+      if (!resp.ok) {
+        throw new Error("서버에서 백그라운드 크롤러 가동 준비에 실패했습니다.");
+      }
+      
+      const result = await resp.json();
+      if (pMessage) pMessage.textContent = "수집 태스크 등록 승인. 보안 터널 및 크롤링 세션 연결 중...";
+      
+      if (pollInterval) clearInterval(pollInterval);
+      
+      pollInterval = setInterval(async () => {
+        try {
+          const pResp = await fetch("/api/scrape/progress");
+          if (!pResp.ok) return;
+          const progress = await pResp.json();
+          
+          if (pAdded) pAdded.textContent = progress.added;
+          if (pMessage) pMessage.textContent = progress.message;
+          
+          const currentMax = progress.max_results || maxResults;
+          if (pMax) pMax.textContent = currentMax;
+          
+          const percent = Math.min(Math.round((progress.added / currentMax) * 100), 100);
+          if (pPercentage) pPercentage.textContent = percent + "%";
+          if (pBar) pBar.style.width = percent + "%";
+          
+          if (progress.status === "completed") {
+            clearInterval(pollInterval);
+            if (submitBtn) submitBtn.disabled = false;
+            
+            if (pPercentage) pPercentage.textContent = "100%";
+            if (pBar) {
+              pBar.style.width = "100%";
+              pBar.style.background = "linear-gradient(90deg, #10b981, #059669)";
+            }
+            
+            await reloadLeadsTable();
+            
+            setTimeout(() => {
+              if (progressCard) progressCard.style.display = "none";
+              if (alertSuccess) {
+                alertSuccess.style.display = "flex";
+                if (alertSuccessText) alertSuccessText.innerHTML = progress.message;
+              }
+            }, 1500);
+            
+          } else if (progress.status === "failed") {
+            clearInterval(pollInterval);
+            if (submitBtn) submitBtn.disabled = false;
+            
+            if (pBar) pBar.style.background = "var(--danger)";
+            if (pPercentage) pPercentage.style.color = "var(--danger)";
+            
+            setTimeout(() => {
+              if (progressCard) progressCard.style.display = "none";
+              if (alertError) {
+                alertError.style.display = "flex";
+                if (alertErrorText) alertErrorText.innerHTML = progress.message;
+              }
+            }, 2000);
+          }
+        } catch (err) {
+          console.error("폴링 조회 오류", err);
+        }
+      }, 1000);
+      
+    } catch (err) {
+      if (submitBtn) submitBtn.disabled = false;
+      if (pMessage) pMessage.textContent = "크롤러 기동 실패: " + err.message;
+      if (pBar) pBar.style.background = "var(--danger)";
+    }
+  });
+</script>
+{% endblock %}

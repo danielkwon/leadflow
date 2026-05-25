@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}LeadFlow - B2B 영업 자동화 플랫폼{% endblock %}</title>
+  
+  <!-- 구글 폰트 및 프리미엄 스타일시트 로드 -->
+  <link rel="stylesheet" href="/static/css/index.css">
+  
+  <!-- Lucide Icons CDN 로드 (가볍고 아름다운 SVG 아이콘) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <!-- 은은한 프리미엄 백그라운드 오라 광채 데코 -->
+  <div class="bg-aura"></div>
+  <div class="bg-aura-left"></div>
+
+  {% if user %}
+  <!-- 사이드바 네비게이션 (로그인한 경우에만 렌더링) -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">LF</div>
+      <span class="brand-name">LeadFlow</span>
+    </div>
+    
+    <nav>
+      <ul class="nav-list">
+        <li class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+          <a href="/dashboard">
+            <i data-lucide="layout-dashboard" style="width: 20px; height: 20px;"></i>
+            <span>대시보드</span>
+          </a>
+        </li>
+        <li class="nav-item {% if active_page == 'scrape' %}active{% endif %}">
+          <a href="/scrape">
+            <i data-lucide="search-code" style="width: 20px; height: 20px;"></i>
+            <span>리드 수집</span>
+          </a>
+        </li>
+        <li class="nav-item {% if active_page == 'emails' %}active{% endif %}">
+          <a href="/emails">
+            <i data-lucide="mail" style="width: 20px; height: 20px;"></i>
+            <span>이메일 및 회신</span>
+          </a>
+        </li>
+        <li class="nav-item {% if active_page == 'feedback' %}active{% endif %}">
+          <a href="/feedback" style="display: flex; align-items: center; width: 100%;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <i data-lucide="check-square" style="width: 20px; height: 20px;"></i>
+              <span>이슈 및 피드백</span>
+            </div>
+            <span id="feedback-badge" style="display: none; margin-left: auto; background-color: var(--secondary); color: white; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 9999px; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.2);">0</span>
+          </a>
+        </li>
+        <li class="nav-item {% if active_page == 'settings' %}active{% endif %}">
+          <a href="/settings">
+            <i data-lucide="settings" style="width: 20px; height: 20px;"></i>
+            <span>설정 및 연동</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <div class="user-profile">
+        <div class="avatar">
+          {{ user.email[0].upper() if user.email else 'U' }}
+        </div>
+        <div class="user-info">
+          <span class="user-company">{{ user.company_name or 'LeadFlow 파트너' }}</span>
+          <span class="user-email">{{ user.email }}</span>
+        </div>
+      </div>
+      <a href="/logout" class="logout-btn">
+        <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+        <span>로그아웃</span>
+      </a>
+    </div>
+  </aside>
+  {% endif %}
+
+  <!-- 메인 콘텐츠 영역 -->
+  <main class="{% if user %}main-content{% else %}auth-wrapper{% endif %}">
+    {% block content %}
+    {% endblock %}
+  </main>
+
+  <!-- 플로팅 피드백 챗봇 컴포넌트 탑재 -->
+  {% if user %}
+  <!-- 플로팅 챗봇 버튼 -->
+  <button id="chatbot-toggle" style="position: fixed; bottom: 2rem; right: 2rem; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border: none; box-shadow: 0 8px 32px rgba(79, 70, 229, 0.3); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 9999; transition: transform 0.2s ease, box-shadow 0.2s ease;">
+    <i data-lucide="message-square-plus" style="width: 24px; height: 24px;"></i>
+  </button>
+
+  <!-- 챗봇 대화창 버블 플레이트 -->
+  <div id="chatbot-container" style="display: none; position: fixed; bottom: 6.5rem; right: 2rem; width: 360px; height: 480px; border-radius: var(--radius-lg); background: rgba(255, 255, 255, 0.95); border: 1px solid var(--border-color); box-shadow: var(--shadow-glass); backdrop-filter: blur(20px); z-index: 9998; flex-direction: column; overflow: hidden; font-family: 'Inter', sans-serif; transition: all 0.3s ease;">
+    <!-- 챗봇 헤더 (로열 그라데이션) -->
+    <div style="background: linear-gradient(135deg, var(--primary), var(--secondary)); padding: 1.25rem; color: white; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="background: rgba(255, 255, 255, 0.2); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">LF</div>
+        <div>
+          <h3 style="margin: 0; font-size: 0.95rem; font-weight: 700;">LeadFlow 검수 도우미</h3>
+          <span style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.8);">실시간 피드백 및 오류 보고</span>
+        </div>
+      </div>
+      <button id="chatbot-close" style="background: none; border: none; color: white; cursor: pointer; display: flex; align-items: center;">
+        <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+      </button>
+    </div>
+    
+    <!-- 대화 리스트 영역 -->
+    <div id="chatbot-messages" style="flex: 1; padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; font-size: 0.85rem; line-height: 1.5; color: var(--text-main);">
+      <div style="align-self: flex-start; background: #ffffff; border: 1px solid var(--border-color); border-radius: 4px 16px 16px 16px; padding: 0.75rem 1rem; max-width: 80%; box-shadow: var(--shadow-sm);">
+        안녕하세요! LeadFlow 데모 검수 프로그램에 오신 것을 환영합니다. 😊
+      </div>
+      <div style="align-self: flex-start; background: #ffffff; border: 1px solid var(--border-color); border-radius: 4px 16px 16px 16px; padding: 0.75rem 1rem; max-width: 80%; box-shadow: var(--shadow-sm);">
+        데모 버전을 점검하시며 발견한 **기능 개선 요구사항, 버그, 추가 희망 건의의견**을 언제든지 자유롭게 대화식으로 남겨주세요.
+      </div>
+      <div style="align-self: flex-start; background: #ffffff; border: 1px solid var(--border-color); border-radius: 4px 16px 16px 16px; padding: 0.75rem 1rem; max-width: 80%; box-shadow: var(--shadow-sm); font-weight: 600; border-left: 3px solid var(--secondary);">
+        의견을 기록하기에 앞서, 피드백을 남겨주시는 검수 직원분의 **성함**을 알려주세요!
+      </div>
+    </div>
+    
+    <!-- 메시지 입력창 -->
+    <div style="padding: 1rem; background: #ffffff; border-top: 1px solid var(--border-color); display: flex; gap: 8px; flex-shrink: 0;">
+      <input type="text" id="chatbot-input" style="flex: 1; padding: 0.6rem 0.9rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); outline: none; font-size: 0.85rem; color: var(--text-main);" placeholder="성함을 입력하세요...">
+      <button id="chatbot-send" style="background: var(--primary); border: none; color: white; width: 36px; height: 36px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;">
+        <i data-lucide="send" style="width: 16px; height: 16px;"></i>
+      </button>
+    </div>
+  </div>
+  {% endif %}
+
+  <script>
+    // Lucide 아이콘 렌더링
+    lucide.createIcons();
+
+    // 미처리 피드백 건수 실시간 뱃지 업데이트 헬퍼
+    async function updateFeedbackBadge() {
+      try {
+        const resp = await fetch("/api/feedback/todo-count");
+        if (resp.ok) {
+          const data = await resp.json();
+          const badge = document.getElementById("feedback-badge");
+          if (badge) {
+            if (data.count > 0) {
+              badge.textContent = data.count;
+              badge.style.display = "inline-block";
+            } else {
+              badge.style.display = "none";
+            }
+          }
+        }
+      } catch (err) {
+        console.error("미처리 피드백 뱃지 업데이트 실패:", err);
+      }
+    }
+
+    // 전역 스코프에 노출하여 상속된 HTML 컴포넌트 간 양방향 결합성 지원
+    window.updateFeedbackBadge = updateFeedbackBadge;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      {% if user %}
+      updateFeedbackBadge();
+      {% endif %}
+    });
+
+    // 플로팅 챗봇 양방향 실시간 대화 상태 관리기
+    {% if user %}
+    (function() {
+      const chatbotToggle = document.getElementById("chatbot-toggle");
+      const chatbotContainer = document.getElementById("chatbot-container");
+      const chatbotClose = document.getElementById("chatbot-close");
+      const chatbotSend = document.getElementById("chatbot-send");
+      const chatbotInput = document.getElementById("chatbot-input");
+      const chatbotMessages = document.getElementById("chatbot-messages");
+      
+      let chatState = {
+        stage: "name", // name -> opinion -> done
+        name: "",
+        opinion: ""
+      };
+      
+      if (chatbotToggle && chatbotContainer) {
+        chatbotToggle.addEventListener("click", () => {
+          if (chatbotContainer.style.display === "none" || !chatbotContainer.style.display) {
+            chatbotContainer.style.display = "flex";
+            chatbotToggle.style.transform = "scale(0.9) rotate(45deg)";
+            chatbotInput.focus();
+          } else {
+            chatbotContainer.style.display = "none";
+            chatbotToggle.style.transform = "scale(1) rotate(0deg)";
+          }
+        });
+        
+        if (chatbotClose) {
+          chatbotClose.addEventListener("click", () => {
+            chatbotContainer.style.display = "none";
+            chatbotToggle.style.transform = "scale(1) rotate(0deg)";
+          });
+        }
+        
+        chatbotInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            sendChatMessage();
+          }
+        });
+        
+        chatbotSend.addEventListener("click", sendChatMessage);
+      }
+      
+      function appendMessage(text, isUser = false) {
+        const bubble = document.createElement("div");
+        bubble.style.alignSelf = isUser ? "flex-end" : "flex-start";
+        bubble.style.background = isUser ? "var(--primary)" : "#ffffff";
+        bubble.style.color = isUser ? "white" : "var(--text-main)";
+        bubble.style.border = isUser ? "none" : "1px solid var(--border-color)";
+        bubble.style.borderRadius = isUser ? "16px 4px 16px 16px" : "4px 16px 16px 16px";
+        bubble.style.padding = "0.75rem 1rem";
+        bubble.style.maxWidth = "80%";
+        bubble.style.boxShadow = "var(--shadow-sm)";
+        bubble.style.wordBreak = "break-all";
+        bubble.textContent = text;
+        
+        chatbotMessages.appendChild(bubble);
+        chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+      }
+      
+      async function sendChatMessage() {
+        const val = chatbotInput.value.trim();
+        if (!val) return;
+        
+        chatbotInput.value = "";
+        
+        if (chatState.stage === "name") {
+          chatState.name = val;
+          appendMessage(val, true);
+          
+          chatState.stage = "opinion";
+          setTimeout(() => {
+            appendMessage(`반갑습니다, ${chatState.name}님! 이제 대표님(사용자)과 개발자 대시보드에 실시간 전송할 피드백 의견을 상세하게 남겨주세요.`);
+            chatbotInput.placeholder = "개선할 사항이나 버그 의견을 적어주세요...";
+          }, 500);
+          
+        } else if (chatState.stage === "opinion") {
+          chatState.opinion = val;
+          appendMessage(val, true);
+          
+          chatState.stage = "sending";
+          appendMessage("피드백 전송 채널을 통해 서버로 의견 전송 중...");
+          
+          try {
+            const formData = new FormData();
+            formData.append("reporter_name", chatState.name);
+            formData.append("content", chatState.opinion);
+            
+            const resp = await fetch("/api/feedback/submit", {
+              method: "POST",
+              body: formData
+            });
+            
+            if (resp.ok) {
+              chatState.stage = "done";
+              appendMessage("✨ 전송이 완료되었습니다! 접수된 백로그는 사이드바의 [이슈 및 피드백] 관리 화면에서 대표님이 즉시 확인하실 수 있습니다. 고견 주셔서 대단히 감사합니다!");
+              chatbotInput.disabled = true;
+              chatbotInput.placeholder = "피드백 전송 완료.";
+              chatbotSend.disabled = true;
+              
+              // 실시간 미처리 피드백 건수 알림 뱃지 업데이트
+              updateFeedbackBadge();
+            } else {
+              throw new Error();
+            }
+          } catch (err) {
+            chatState.stage = "opinion";
+            appendMessage("❌ 서버 데이터베이스 연동 장애로 피드백 기록에 실패했습니다. 다시 시도해 주세요.");
+          }
+        }
+      }
+    })();
+    {% endif %}
+  </script>
+  {% block extra_script %}{% endblock %}
+</body>
+</html>

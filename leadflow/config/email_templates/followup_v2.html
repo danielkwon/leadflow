@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>(광고) {{ company_name }} 대표님, 마지막으로 안내드립니다</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif; line-height: 1.8; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .highlight { background: #fef3c7; padding: 15px 20px; border-radius: 8px; border-left: 4px solid #f59e0b; margin: 20px 0; }
+        .footer { border-top: 1px solid #eee; padding-top: 15px; margin-top: 30px; font-size: 0.85rem; color: #999; }
+        .footer a { color: #999; }
+    </style>
+</head>
+<body>
+    <p>안녕하세요, <strong>{{ company_name }}</strong> {{ representative }}님.</p>
+
+    <p>두 번이나 연락드려 죄송합니다. 마지막으로 한 가지만 안내드리고 싶습니다.</p>
+
+    <div class="highlight">
+        <strong>📌 도입 업체 실제 사례:</strong>
+        <p>{{ region }} 소재 {{ category }} A사는 저희 솔루션 도입 후<br>
+        - 출퇴근 관리 시간 <strong>80% 절감</strong><br>
+        - 임금 정산 오류 <strong>제로</strong> 달성<br>
+        - 근로자 만족도 <strong>대폭 향상</strong></p>
+    </div>
+
+    <p>관심이 없으시다면 더 이상 연락드리지 않겠습니다.<br>
+    혹시 조금이라도 궁금하신 점이 있으시면 편하게 회신해 주세요.</p>
+
+    <div class="footer">
+        <p>{{ sender_name }}<br>
+        📧 {{ sender_email }}</p>
+        <p><a href="{{ opt_out_link }}">수신거부</a></p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% set active_page = 'emails' %}
+
+{% block title %}이메일 및 회신 - LeadFlow B2B 영업 자동화 플랫폼{% endblock %}
+
+{% block extra_head %}
+<style>
+  .accordion-header {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  .accordion-header:hover {
+    background-color: var(--primary-light) !important;
+  }
+  .accordion-content {
+    display: none;
+    background-color: rgba(248, 250, 252, 0.6);
+    border-bottom: 1px solid var(--border-color);
+  }
+  .accordion-content td {
+    padding: 1.25rem 1.5rem !important;
+  }
+  .body-content-box {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-main);
+    white-space: pre-wrap;
+    box-shadow: var(--shadow-sm);
+  }
+  .badge-seq {
+    background-color: var(--primary-light);
+    color: var(--primary);
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">이메일 및 회신 현황</h1>
+  <p class="page-desc">발송 완료된 콜드 메일(Drip Sequence) 이력과 고객사로부터 도달한 인박스(Inbox) 회신 목록을 실시간 감시 및 조회합니다.</p>
+</div>
+
+<!-- 상단 메트릭 요약 정보 카드 -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+  <div class="card" style="margin-bottom: 0; padding: 1.5rem; display: flex; align-items: center; gap: 1.25rem;">
+    <div style="background: var(--primary-light); color: var(--primary); width: 48px; height: 48px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
+      <i data-lucide="send" style="width: 24px; height: 24px;"></i>
+    </div>
+    <div>
+      <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500; display: block; margin-bottom: 0.25rem;">총 메일 발송 건수</span>
+      <strong style="font-size: 1.75rem; color: var(--text-main); font-family: 'Outfit', sans-serif;">{{ email_logs|length }}건</strong>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 0; padding: 1.5rem; display: flex; align-items: center; gap: 1.25rem;">
+    <div style="background: #ecfdf5; color: #10b981; width: 48px; height: 48px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
+      <i data-lucide="message-square" style="width: 24px; height: 24px;"></i>
+    </div>
+    <div>
+      <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500; display: block; margin-bottom: 0.25rem;">수신된 영업 회신</span>
+      <strong style="font-size: 1.75rem; color: #10b981; font-family: 'Outfit', sans-serif;">{{ replies|length }}건</strong>
+    </div>
+  </div>
+</div>
+
+<!-- 1. 수신된 영업 회신 내역 (Replies) -->
+<section class="card" style="margin-bottom: 2rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2 class="card-title" style="margin-bottom: 0;">
+      <i data-lucide="inbox" style="width: 20px; height: 20px; color: #10b981;"></i>
+      실시간 회신 모니터링 (클릭 시 본문 확인 가능)
+    </h2>
+    <button onclick="window.location.reload();" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;">
+      <i data-lucide="refresh-cw" style="width: 12px; height: 12px;"></i>
+      <span>새로고침</span>
+    </button>
+  </div>
+
+  {% if replies %}
+  <div class="table-container">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th style="width: 40px;"></th>
+          <th>업체명 / 대표자</th>
+          <th>이메일</th>
+          <th>회신 제목</th>
+          <th>수신 시각</th>
+          <th>동기화 상태</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for reply in replies %}
+        <!-- 아코디언 헤더 행 -->
+        <tr class="accordion-header" onclick="toggleAccordion('reply-{{ reply.id }}')">
+          <td>
+            <i id="icon-reply-{{ reply.id }}" data-lucide="chevron-right" style="width: 16px; height: 16px; transition: transform 0.2s ease;"></i>
+          </td>
+          <td style="font-weight: 600; color: var(--text-main);">
+            {{ reply.lead.company_name }}
+            {% if reply.lead.representative %}
+            <span style="font-weight: 400; font-size: 0.8rem; color: var(--text-muted); margin-left: 4px;">({{ reply.lead.representative }} 대표)</span>
+            {% endif %}
+          </td>
+          <td style="font-weight: 500; color: var(--primary);">{{ reply.lead.email or '-' }}</td>
+          <td style="max-width: 300px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; font-weight: 500;">
+            {{ reply.subject or '제목 없음' }}
+          </td>
+          <td style="font-size: 0.85rem; color: var(--text-muted);">
+            {{ reply.received_at.strftime('%Y-%m-%d %H:%M') }}
+          </td>
+          <td>
+            {% if reply.synced_to_sheet %}
+            <span class="badge badge-replied" style="background-color: #d1fae5; color: #065f46;">
+              <i data-lucide="check" style="width: 10px; height: 10px; display: inline; vertical-align: middle; margin-right: 2px;"></i>Sheet 동기화됨
+            </span>
+            {% else %}
+            <span class="badge badge-new" style="background-color: #fef3c7; color: #92400e;">대기 중</span>
+            {% endif %}
+          </td>
+        </tr>
+        <!-- 아코디언 본문 행 -->
+        <tr id="body-reply-{{ reply.id }}" class="accordion-content">
+          <td></td>
+          <td colspan="5">
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">
+                <i data-lucide="message-square" style="width: 12px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>
+                회신 내용 원문:
+              </div>
+              <div class="body-content-box">
+                {{ reply.body or '내용이 없는 메일입니다.' }}
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="text-align: center; padding: 4rem 1rem; color: var(--text-muted);">
+    <i data-lucide="mail-warning" style="width: 48px; height: 48px; stroke-width: 1.5; color: var(--text-light); margin-bottom: 1rem;"></i>
+    <p style="font-size: 0.95rem; font-weight: 500;">수집된 고객 회신이 아직 없습니다.</p>
+    <p style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.25rem;">수집된 타깃 DB에 이메일 캠페인이 발송되면 회신이 이곳에 실시간 연동됩니다.</p>
+  </div>
+  {% endif %}
+</section>
+
+<!-- 2. 발송 완료된 콜드 메일 이력 (Email Logs) -->
+<section class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2 class="card-title" style="margin-bottom: 0;">
+      <i data-lucide="history" style="width: 20px; height: 20px; color: var(--primary);"></i>
+      이메일 캠페인 발송 로그
+    </h2>
+  </div>
+
+  {% if email_logs %}
+  <div class="table-container">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>대상 업체명</th>
+          <th>수신 이메일</th>
+          <th>캠페인 회차</th>
+          <th>발송 제목</th>
+          <th>발송 시각</th>
+          <th>발송 상태</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in email_logs %}
+        <tr>
+          <td style="font-weight: 600; color: var(--text-main);">
+            {{ log.lead.company_name }}
+          </td>
+          <td style="font-weight: 500; color: var(--text-muted);">{{ log.lead.email }}</td>
+          <td>
+            <span class="badge-seq">{{ log.sequence_number }}회차 발송</span>
+          </td>
+          <td style="max-width: 280px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; font-size: 0.9rem; color: var(--text-main);">
+            {{ log.subject }}
+          </td>
+          <td style="font-size: 0.85rem; color: var(--text-muted);">
+            {{ log.sent_at.strftime('%Y-%m-%d %H:%M') }}
+          </td>
+          <td>
+            {% if log.status == 'sent' %}
+            <span class="badge badge-replied" style="background-color: #e0e7ff; color: #4338ca;">발송성공</span>
+            {% elif log.status == 'failed' %}
+            <span class="badge badge-new" style="background-color: #fee2e2; color: #b91c1c;">발송실패</span>
+            {% else %}
+            <span class="badge badge-contacted">{{ log.status }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="text-align: center; padding: 4rem 1rem; color: var(--text-muted);">
+    <i data-lucide="mail-x" style="width: 48px; height: 48px; stroke-width: 1.5; color: var(--text-light); margin-bottom: 1rem;"></i>
+    <p style="font-size: 0.95rem; font-weight: 500;">발송된 이메일 이력이 없습니다.</p>
+    <p style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.25rem;">수집된 리드를 기반으로 콜드 메일 캠페인이 전송되면 실시간 발송 로그가 쌓이게 됩니다.</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  function toggleAccordion(id) {
+    const content = document.getElementById('body-' + id);
+    const icon = document.getElementById('icon-' + id);
+    if (!content) return;
+    
+    if (content.style.display === 'table-row') {
+      content.style.display = 'none';
+      if (icon) icon.style.transform = 'rotate(0deg)';
+    } else {
+      content.style.display = 'table-row';
+      if (icon) icon.style.transform = 'rotate(90deg)';
+    }
+  }
+</script>
+{% endblock %}
