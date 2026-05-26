@@ -1,0 +1,77 @@
+services:
+  # 1. LeadFlow FastAPI Web Dashboard
+  leadflow-web:
+    build:
+      context: ./leadflow
+      dockerfile: Dockerfile
+    container_name: leadflow-web
+    restart: unless-stopped
+    command: ["web", "--host", "0.0.0.0", "--port", "8080"]
+    env_file:
+      - .env
+    environment:
+      - APP_ENV=production
+      - PORT=8080
+    ports:
+      - "8080:8080" # 로컬 IAP 포트포워딩 접속 및 직접 포트 호출용
+    volumes:
+      - ./data/leadflow:/app/data
+      - ./leadflow/config:/app/config
+    networks:
+      - leadflow-net
+      # - proxy # 기존 Traefik 리버스 프록시 합류 시 주석 제거
+    # labels:  # 기존 Traefik 리버스 프록시 합류 시 주석 제거
+    #   - "traefik.enable=true"
+    #   - "traefik.docker.network=proxy"
+    #   - "traefik.http.routers.leadflow.entrypoints=websecure"
+    #   - "traefik.http.routers.leadflow.rule=Host(`leadflow.nanoplanc.com`)"
+    #   - "traefik.http.routers.leadflow.tls.certresolver=leresolver"
+    #   - "traefik.http.services.leadflow.loadbalancer.server.port=8080"
+
+  # 2. Drip Campaign Scheduler Daemon
+  leadflow-scheduler:
+    build:
+      context: ./sales_pipeline
+      dockerfile: Dockerfile
+    container_name: leadflow-scheduler
+    restart: unless-stopped
+    command: ["scheduler"]
+    env_file:
+      - .env
+    environment:
+      - APP_ENV=production
+    volumes:
+      - ./data/sales_pipeline:/app/data
+      - ./sales_pipeline/config:/app/config
+    networks:
+      - leadflow-net
+    depends_on:
+      - leadflow-web
+
+  # 3. Gmail Inbox Watcher Monitor Daemon
+  leadflow-monitor:
+    build:
+      context: ./sales_pipeline
+      dockerfile: Dockerfile
+    container_name: leadflow-monitor
+    restart: unless-stopped
+    command: ["monitor"]
+    env_file:
+      - .env
+    environment:
+      - APP_ENV=production
+    volumes:
+      - ./data/sales_pipeline:/app/data
+      - ./sales_pipeline/config:/app/config
+    networks:
+      - leadflow-net
+    depends_on:
+      - leadflow-web
+
+networks:
+  leadflow-net:
+    name: leadflow-net
+    driver: bridge
+  # proxy:       # 기존 Traefik 리버스 프록시 합류 시 주석 제거
+  #   name: proxy
+  #   external: true

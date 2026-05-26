@@ -14,6 +14,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # 의존성 정의 파일 복사 및 설치
 COPY pyproject.toml .
+COPY src/ /app/src/
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir .
 
