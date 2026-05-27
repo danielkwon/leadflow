@@ -1,7 +1,6 @@
-"""FastAPI 메인 웹 애플리케이션 정의 모듈.
+"""FastAPI 메인 웹 애플리케이션 정의 모듈."""
+import os
 
-정적 자산 폴더 마운트 및 웹 통합 라우터를 등록한다.
-"""
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
@@ -13,9 +12,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# 정적 파일 경로 마운트 (CSS, JS, 이미지 등)
-# 실제 디렉터리 존재가 보장되어야 마운트 가능
-app.mount("/static", StaticFiles(directory="src/leadflow/web/static"), name="static")
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-# 라우터 등록
 app.include_router(router)

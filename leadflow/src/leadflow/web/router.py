@@ -3,7 +3,8 @@
 SaaS형 회원가입/로그인 관리, 대시보드 메트릭 시각화,
 가변 지역/업종 기반 크롤링 제어, 개별 암호화 자격증명 관리 기능을 담당한다.
 """
-import json
+import os
+import re
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status, BackgroundTasks
@@ -11,10 +12,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from leadflow.db.engine import get_db_api
-from leadflow.db.models import User, UserCredential, Lead, Campaign, EmailLog, Reply, Feedback
-from leadflow.db.repository import get_leads, count_leads, get_active_campaigns
-from leadflow.utils.security import (
+from leadflow_common.db.engine import get_db_api
+from leadflow_common.db.models import User, UserCredential, Lead, Campaign, EmailLog, Reply, Feedback
+from leadflow_common.db.repository import get_leads, count_leads, get_active_campaigns
+from leadflow_common.utils.security import (
     create_access_token,
     decode_access_token,
     hash_password,
@@ -22,14 +23,14 @@ from leadflow.utils.security import (
     encrypt_data,
     decrypt_data,
 )
-from leadflow.utils.logging import get_logger
-from leadflow.scraper.naver_api import scrape_leads, get_scrape_progress
+from leadflow_common.utils.logging import get_logger
+from leadflow_common.scraper.naver_api import scrape_leads, get_scrape_progress
 
 log = get_logger("web.router")
 router = APIRouter()
 
-# Jinja2 템플릿 로더 설정
-templates = Jinja2Templates(directory="src/leadflow/web/templates")
+templates_dir = os.path.join(os.path.dirname(__file__), "templates")
+templates = Jinja2Templates(directory=templates_dir)
 
 import re
 
@@ -181,12 +182,15 @@ async def login_post(
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     
     # 보안 HTTP-Only 세션 쿠키 부여
+    from leadflow_common.settings import get_settings
+    settings = get_settings()
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
         max_age=60 * 60 * 24, # 24시간
-        samesite="lax"
+        samesite="lax",
+        secure=(settings.app_env == "production"),
     )
     log.info("SaaS 로그인 성공", email=email, user_id=user.id)
     return response

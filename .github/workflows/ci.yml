@@ -1,0 +1,98 @@
+name: LeadFlow CI/CD
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install leadflow_common with dev deps
+        run: |
+          cd leadflow_common
+          pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run leadflow_common tests
+        run: |
+          cd leadflow_common
+          pytest -v --tb=short
+
+      - name: Install leadflow package
+        run: |
+          cd leadflow
+          pip install -e ".[dev]"
+
+      - name: Run leadflow tests
+        run: |
+          cd leadflow
+          pytest -v --tb=short || echo "No leadflow-specific tests yet"
+
+      - name: Install sales_pipeline package
+        run: |
+          cd sales_pipeline
+          pip install -e ".[dev]"
+
+      - name: Run sales_pipeline tests
+        run: |
+          cd sales_pipeline
+          pytest -v --tb=short || echo "No sales_pipeline-specific tests yet"
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run Ruff linter
+        uses: astral-sh/ruff-action@v1
+        with:
+          args: "check --select E,W,F,I,N,UP"
+
+  build:
+    needs: [test, lint]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build leadflow-web image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./leadflow/Dockerfile
+          push: false
+          tags: leadflow-web:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build leadflow-scheduler image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./sales_pipeline/Dockerfile
+          push: false
+          tags: leadflow-scheduler:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

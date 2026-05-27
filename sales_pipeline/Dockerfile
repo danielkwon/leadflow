@@ -1,4 +1,4 @@
-# 1단계: 빌드 환경 정의
+# 1단계: 공통 라이브러리 + Worker 패키지 빌드
 FROM python:3.11-slim as builder
 
 WORKDIR /app
@@ -8,17 +8,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# 가상환경 생성 및 의존성 설치 준비
+# 가상환경 생성
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# 의존성 정의 파일 복사 및 설치
-COPY pyproject.toml .
-COPY src/ /app/src/
+# 공통 라이브러리 설치 (에디터블 모드)
+COPY leadflow_common/pyproject.toml /app/leadflow_common/
+COPY leadflow_common/src/ /app/leadflow_common/src/
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir .
+    && pip install --no-cache-dir /app/leadflow_common/
 
-# 2단계: 경량 실행 이미지 정의
+# Worker 패키지 설치
+COPY sales_pipeline/pyproject.toml /app/sales_pipeline/
+COPY sales_pipeline/src/ /app/sales_pipeline/src/
+RUN pip install --no-cache-dir /app/sales_pipeline/
+
+# 2단계: 경량 실행 이미지
 FROM python:3.11-slim as runner
 
 WORKDIR /app
@@ -27,18 +32,19 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# 어플리케이션 소스 코드 복사
-COPY src/ /app/src/
-COPY config/ /app/config/
+# 애플리케이션 소스 코드 복사
+COPY leadflow_common/src/ /app/leadflow_common/src/
+COPY leadflow_common/config/ /app/config/
+COPY sales_pipeline/src/ /app/sales_pipeline/src/
 
-# 데이터 보관용 디렉토리 생성 및 볼륨 설정
+# 데이터 보관용 디렉토리
 RUN mkdir -p /app/data
 VOLUME /app/data
 
-# 환경 변수 기본값 설정
+# 환경 변수
 ENV APP_ENV=production
 ENV LOG_LEVEL=INFO
-ENV PYTHONPATH="/app/src"
+ENV PYTHONPATH="/app/leadflow_common/src:/app/sales_pipeline/src"
 
-# CLI 엔트리포인트 실행
+# CLI 엔트리포인트
 ENTRYPOINT ["python", "-m", "sales_pipeline.cli"]

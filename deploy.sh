@@ -3,7 +3,7 @@
 #  LeadFlow SaaS 배포 자동화 스크립트 (CI/CD & 무중단 자동 롤백)
 #
 #  사용법:
-#    ./deploy.sh              # E2E 테스트 → 이미지 빌드 → 서비스 배포
+#    ./deploy.sh              # 테스트 → DB 백업 → 이미지 빌드 → 배포
 #    ./deploy.sh --skip-tests # 테스트 없이 바로 이미지 빌드 및 배포
 #    ./deploy.sh --build-only # Docker 이미지만 빌드 (배포 안 함)
 #    ./deploy.sh --rollback   # 이전 정상 이미지 버전으로 즉각 롤백
@@ -16,6 +16,8 @@ COMPOSE_FILE="${PROJECT_DIR}/docker-compose.yml"
 SERVICES=("leadflow-web" "leadflow-scheduler" "leadflow-monitor")
 LOG_FILE="${PROJECT_DIR}/data/deploy.log"
 BACKUP_TAG="rollback"
+DB_DIR="${PROJECT_DIR}/data"
+DB_BACKUP_DIR="${DB_DIR}/backups"
 
 # --- 색상 설정 (터미널 뷰어 보조) ---
 RED='\033[0;31m'
@@ -31,6 +33,7 @@ warn()  { echo -e "${YELLOW}⚠️  $*${NC}"; echo "[$(date '+%Y-%m-%d %H:%M:%S'
 fail()  { echo -e "${RED}❌ $*${NC}"; echo "[$(date '+%Y-%m-%d %H:%M:%S')] ❌ $*" >> "$LOG_FILE"; exit 1; }
 
 mkdir -p "$(dirname "$LOG_FILE")"
+mkdir -p "$DB_BACKUP_DIR"
 
 # --- 인자 파싱 ---
 SKIP_TESTS=false
@@ -57,7 +60,6 @@ if [ "$ROLLBACK" = true ]; then
     log "🔄 Phase 0: 이전 정상 구동 버전 이미지 롤백 시작"
 
     for svc in "${SERVICES[@]}"; do
-        # docker-compose 빌드에 의해 생성되는 기본 이미지명 패턴
         image_name="leadflow-${svc}"
         if docker image inspect "${image_name}:${BACKUP_TAG}" &>/dev/null; then
             docker tag "${image_name}:${BACKUP_TAG}" "${image_name}:latest"
@@ -78,7 +80,6 @@ fi
 # =========================================================================
 log "🔍 Phase 1: Pre-flight 상태 점검"
 
-# Git 변경사항 추적
 cd "$PROJECT_DIR"
 if ! git diff --quiet HEAD 2>/dev/null; then
     warn "커밋되지 않은 로컬 작업 파일이 감지되었습니다."
@@ -94,38 +95,77 @@ GIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 log "  Git Branch/Hash: ${GIT_BRANCH}@${GIT_HASH}"
 
-# Docker 가동 감지
 if ! docker info &>/dev/null; then
     fail "Docker 데몬이 구동 중이지 않습니다. Docker를 실행해 주세요."
 fi
 ok "Pre-flight 점검 통과"
 
 # =========================================================================
-#  Phase 2: 테스트 실행 (E2E / 통합 무모킹)
+#  Phase 2: 데이터베이스 스냅샷 백업
+# =========================================================================
+log "💾 Phase 2: SQLite 데이터베이스 스냅샷 백업"
+
+BACKUP_TS=$(date '+%Y%m%d_%H%M%S')
+for db_file in "$DB_DIR"/*.db; do
+    if [ -f "$db_file" ]; then
+        db_name=$(basename "$db_file")
+        backup_file="${DB_BACKUP_DIR}/${db_name}_${BACKUP_TS}"
+        cp "$db_file" "$backup_file"
+        ok "DB 백업 완료: ${db_name} → $(basename "$backup_file")"
+
+        # 7일 이상 지난 백업은 자동 정리
+        find "$DB_BACKUP_DIR" -name "${db_name}_*" -mtime +7 -delete 2>/dev/null || true
+    fi
+done
+log "  백업 경로: ${DB_BACKUP_DIR}"
+
+# =========================================================================
+#  Phase 3: 테스트 실행 (공통 패키지 + 두 모듈)
 # =========================================================================
 if [ "$SKIP_TESTS" = false ]; then
-    log "🧪 Phase 2: 무모킹(No Mocking) 통합 테스트 자동 구동"
+    log "🧪 Phase 3: 통합 테스트 자동 구동"
 
-    # leadflow 패키지 가상환경 내 pytest 실행
+    # leadflow_common 패키지 테스트
+    if [ -f "${PROJECT_DIR}/leadflow_common/.venv/bin/pytest" ]; then
+        log "공통 패키지 테스트 중..."
+        TEST_OUTPUT=$(cd "${PROJECT_DIR}/leadflow_common" && .venv/bin/pytest -v 2>&1) || {
+            echo "$TEST_OUTPUT"
+            fail "공통 패키지 통합 테스트 실패 — 배포가 거부되었습니다."
+        }
+        ok "공통 패키지 테스트 통과"
+    else
+        warn "leadflow_common 가상환경 pytest 미발견 — pip install -e .[dev] 실행 후 재시도"
+    fi
+
+    # leadflow 패키지 테스트
     if [ -f "${PROJECT_DIR}/leadflow/.venv/bin/pytest" ]; then
-        log "가상환경 테스트 러너 탐색 성공. pytest 구동 중..."
+        log "leadflow Web 패키지 테스트 중..."
         TEST_OUTPUT=$(cd "${PROJECT_DIR}/leadflow" && .venv/bin/pytest -v 2>&1) || {
             echo "$TEST_OUTPUT"
-            fail "통합 테스트 실패 — 배포가 거부되었습니다. (해결 후 진행하거나 --skip-tests로 우회할 수 있습니다)"
+            fail "leadflow 통합 테스트 실패 — 배포가 거부되었습니다."
         }
         PASSED=$(echo "$TEST_OUTPUT" | grep -oE '[0-9]+ passed' | head -1 || echo "테스트 통과")
-        ok "테스트 성공 완료: ${PASSED}"
-    else
-        warn "로컬 가상환경 내 pytest 테스트 러너를 탐색하지 못해 테스트를 스킵합니다."
+        ok "leadflow 테스트 성공: ${PASSED}"
+    fi
+
+    # sales_pipeline 패키지 테스트
+    if [ -f "${PROJECT_DIR}/sales_pipeline/.venv/bin/pytest" ]; then
+        log "sales_pipeline Worker 패키지 테스트 중..."
+        TEST_OUTPUT=$(cd "${PROJECT_DIR}/sales_pipeline" && .venv/bin/pytest -v 2>&1) || {
+            echo "$TEST_OUTPUT"
+            fail "sales_pipeline 통합 테스트 실패 — 배포가 거부되었습니다."
+        }
+        PASSED=$(echo "$TEST_OUTPUT" | grep -oE '[0-9]+ passed' | head -1 || echo "테스트 통과")
+        ok "sales_pipeline 테스트 성공: ${PASSED}"
     fi
 else
-    warn "Phase 2: 통합 테스트 건너뜀 (--skip-tests 적용됨)"
+    warn "Phase 3: 통합 테스트 건너뜀 (--skip-tests 적용됨)"
 fi
 
 # =========================================================================
-#  Phase 3: 빌드 및 이전 이미지 백업
+#  Phase 4: 빌드 및 이전 이미지 백업
 # =========================================================================
-log "🏗️  Phase 3: Docker 멀티스테이지 이미지 빌드 개시"
+log "🏗️  Phase 4: Docker 멀티스테이지 이미지 빌드 개시"
 
 # 현재 running 이미지들을 rollback 태그로 사전 이중 백업
 for svc in "${SERVICES[@]}"; do
@@ -151,9 +191,9 @@ if [ "$BUILD_ONLY" = true ]; then
 fi
 
 # =========================================================================
-#  Phase 4: 무중단 컨테이너 기동
+#  Phase 5: 무중단 컨테이너 기동
 # =========================================================================
-log "🚀 Phase 4: 컨테이너 업그레이드 배포 실행"
+log "🚀 Phase 5: 컨테이너 업그레이드 배포 실행"
 
 cd "$PROJECT_DIR"
 docker compose -f "$COMPOSE_FILE" up -d --remove-orphans 2>&1 || {
@@ -163,12 +203,12 @@ docker compose -f "$COMPOSE_FILE" up -d --remove-orphans 2>&1 || {
 }
 
 # =========================================================================
-#  Phase 5: HTTP Health Check 및 정합성 검증
+#  Phase 6: HTTP Health Check 및 정합성 검증
 # =========================================================================
-log "💓 Phase 5: 실시간 HTTP Health Check 개시"
+log "💓 Phase 6: 실시간 HTTP Health Check 개시"
 
 HEALTH_OK=false
-MAX_RETRIES=10
+MAX_RETRIES=15
 RETRY_INTERVAL=3
 
 for i in $(seq 1 $MAX_RETRIES); do
@@ -184,12 +224,18 @@ for i in $(seq 1 $MAX_RETRIES); do
     done
 
     if [ "$ALL_RUNNING" = true ]; then
-        # leadflow-web 컨테이너 내부에서 curl로 로그인 페이지 및 세션 엔드포인트 응답 검증 (HTTP 200)
+        # 1차: 로그인 페이지 응답 확인
         HTTP_CODE=$(docker exec leadflow-web curl -s -o /dev/null -w "%{http_code}" --max-time 5 "http://localhost:8080/login" 2>/dev/null || echo "000")
-        
-        # FastAPI 로그인 화면은 보통 200 OK
-        if [ "$HTTP_CODE" = "200" ]; then
-            ok "Health Check 최종 통과! (시도: ${i}/${MAX_RETRIES}, HTTP 응답 코드: ${HTTP_CODE})"
+
+        # 2차: 정적 자산 접근 확인 (CSS)
+        STATIC_CODE=$(docker exec leadflow-web curl -s -o /dev/null -w "%{http_code}" --max-time 5 "http://localhost:8080/static/css/index.css" 2>/dev/null || echo "000")
+
+        if [ "$HTTP_CODE" = "200" ] && [ "$STATIC_CODE" = "200" ]; then
+            ok "Health Check 최종 통과! (시도: ${i}/${MAX_RETRIES}, 로그인: ${HTTP_CODE}, 정적파일: ${STATIC_CODE})"
+            HEALTH_OK=true
+            break
+        elif [ "$HTTP_CODE" = "200" ]; then
+            ok "Health Check 통과! (시도: ${i}/${MAX_RETRIES}, 로그인: ${HTTP_CODE})"
             HEALTH_OK=true
             break
         fi
@@ -201,19 +247,17 @@ done
 if [ "$HEALTH_OK" = false ]; then
     warn "Health Check 검사 최종 통과 실패 — 자동 즉각 롤백을 개시합니다..."
 
-    # 디버깅을 위해 장애 컨테이너 에러 로그 백업
     for svc in "${SERVICES[@]}"; do
         log "  --- [장애] ${svc} 최근 20라인 에러 로그 ---"
         docker logs --tail 20 "$svc" 2>&1 >> "$LOG_FILE" || true
     done
 
-    # 롤백 처리
     "$0" --rollback
     fail "서비스 건강 이상으로 배포 취소 및 자동 롤백 완료. 상세 장애 원인을 로그에서 확인하세요: ${LOG_FILE}"
 fi
 
 # =========================================================================
-#  Phase 6: 배포 완료 결과 브리핑
+#  Phase 7: 배포 완료 결과 브리핑
 # =========================================================================
 echo ""
 echo -e "${GREEN}═══════════════════════════════════════════════════════════════════${NC}"
@@ -230,5 +274,6 @@ done
 
 echo ""
 echo -e "  📋 배포 이력 로그: ${LOG_FILE}"
+echo -e "  💾 DB 백업 경로: ${DB_BACKUP_DIR}"
 echo -e "  🔄 수동 롤백 복원: ${YELLOW}./deploy.sh --rollback${NC}"
 echo ""

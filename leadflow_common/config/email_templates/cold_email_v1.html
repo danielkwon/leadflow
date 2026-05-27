@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>(광고) {{ company_name }} 대표님, 현장 근로자 관리 솔루션 안내</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif; line-height: 1.8; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { margin-bottom: 20px; }
+        .content { margin-bottom: 30px; }
+        .highlight { background: #f0f7ff; padding: 15px 20px; border-radius: 8px; border-left: 4px solid #2563eb; margin: 20px 0; }
+        .cta { display: inline-block; background: #2563eb; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; margin: 10px 0; }
+        .footer { border-top: 1px solid #eee; padding-top: 15px; margin-top: 30px; font-size: 0.85rem; color: #999; }
+        .footer a { color: #999; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        {% if llm_intro %}
+        <p>{{ llm_intro }}</p>
+        {% else %}
+        <p>안녕하세요, <strong>{{ company_name }}</strong> {{ representative }}님.</p>
+        <p>{{ region }} 지역에서 {{ category }} 업무를 운영하시며,<br>
+        근로자 출퇴근 관리나 임금 정산에 어려움은 없으신가요?</p>
+        {% endif %}
+    </div>
+
+    <div class="content">
+        <p>저희는 <strong>건설·시공 현장에 최적화된 근로자 관리 SaaS</strong>를 제공하고 있습니다.</p>
+
+        <div class="highlight">
+            <strong>💡 주요 기능:</strong>
+            <ul>
+                <li>📱 모바일 출퇴근 체크 (GPS 기반)</li>
+                <li>📊 실시간 현장 인력 현황 대시보드</li>
+                <li>💰 자동 임금 계산 및 명세서 발급</li>
+                <li>📋 근로계약서 전자 서명</li>
+                <li>🏗️ 다중 현장 통합 관리</li>
+            </ul>
+        </div>
+
+        <p>현재 <strong>{{ region }} 지역 {{ category }}</strong> 분야에서 많은 업체들이 사용하고 계십니다.</p>
+        <p>간단한 데모를 통해 어떻게 업무 효율을 높일 수 있는지 보여드릴 수 있습니다.</p>
+
+        <p>혹시 10분 정도 시간을 내어 간단히 통화하실 수 있으실까요?</p>
+    </div>
+
+    <div class="footer">
+        <p>{{ sender_name }}<br>
+        📧 {{ sender_email }}</p>
+        <p><a href="{{ opt_out_link }}">수신거부</a></p>
+    </div>
+</body>
+</html>

@@ -1,20 +1,18 @@
-"""B2B 영업 자동화 CLI 인터페이스.
+"""Sales Pipeline CLI 인터페이스 (스케줄러/모니터 워커 전용).
 
 사용법:
-    sales scrape --region 서울 --keyword 인력사무소
+    sales scheduler
+    sales monitor
+    sales scrape run --region 서울 --keyword 인력사무소
     sales leads list --status new
-    sales email send-test --lead-id 123
-    sales campaign run --name "2025-Q2"
-    sales scheduler start
-    sales monitor start
 """
 import typer
 
-from sales_pipeline.main import bootstrap
+from leadflow_common.main import bootstrap
 
 app = typer.Typer(
     name="sales",
-    help="B2B 영업 자동화 파이프라인 CLI",
+    help="B2B 영업 자동화 파이프라인 CLI (워커 전용)",
     no_args_is_help=True,
 )
 
@@ -44,7 +42,7 @@ def main_callback() -> None:
 @db_app.command("init")
 def db_init() -> None:
     """데이터베이스 테이블을 초기화한다."""
-    from sales_pipeline.db.engine import init_db
+    from leadflow_common.db.engine import init_db
 
     init_db()
     typer.echo("✅ 데이터베이스 초기화 완료")
@@ -61,8 +59,8 @@ def leads_list(
     limit: int = typer.Option(50, help="조회 수"),
 ) -> None:
     """리드 목록을 조회한다."""
-    from sales_pipeline.db.engine import get_db
-    from sales_pipeline.db.repository import count_leads, get_leads
+    from leadflow_common.db.engine import get_db
+    from leadflow_common.db.repository import count_leads, get_leads
 
     with get_db() as db:
         leads = get_leads(db, status=status, region=region, has_email=has_email, limit=limit)
@@ -81,8 +79,8 @@ def leads_list(
 @leads_app.command("stats")
 def leads_stats() -> None:
     """리드 현황 통계를 표시한다."""
-    from sales_pipeline.db.engine import get_db
-    from sales_pipeline.db.repository import count_leads
+    from leadflow_common.db.engine import get_db
+    from leadflow_common.db.repository import count_leads
 
     with get_db() as db:
         total = count_leads(db)
@@ -99,7 +97,7 @@ def leads_stats() -> None:
     typer.echo(f"  전환: {converted}")
 
 
-# === 스크래핑 (Phase 2에서 구현) ===
+# === 스크래핑 ===
 
 
 @scrape_app.command("run")
@@ -109,7 +107,7 @@ def scrape_run(
 ) -> None:
     """네이버 API로 업체를 검색하고 리드 DB에 저장한다."""
     typer.echo(f"🔍 '{region} {keyword}' 검색 시작...")
-    from sales_pipeline.scraper.naver_api import scrape_leads
+    from leadflow_common.scraper.naver_api import scrape_leads
 
     result = scrape_leads(region=region, keyword=keyword)
     typer.echo(f"✅ 완료: {result['added']}건 추가, {result['skipped']}건 중복 스킵, {result['errors']}건 오류")
@@ -121,13 +119,13 @@ def scrape_enrich(
 ) -> None:
     """이메일이 없는 리드의 웹사이트에서 이메일을 추출한다."""
     typer.echo(f"🌐 웹사이트 이메일 추출 시작 (최대 {limit}건)...")
-    from sales_pipeline.scraper.website_scraper import enrich_leads_with_email
+    from leadflow_common.scraper.website_scraper import enrich_leads_with_email
 
     result = enrich_leads_with_email(limit=limit)
     typer.echo(f"✅ 완료: {result['found']}건 이메일 발견, {result['failed']}건 실패")
 
 
-# === 이메일 (Phase 3에서 구현) ===
+# === 이메일 ===
 
 
 @email_app.command("send-test")
@@ -136,13 +134,13 @@ def email_send_test(
 ) -> None:
     """단건 테스트 이메일을 발송한다."""
     typer.echo(f"📧 리드 #{lead_id}에 테스트 이메일 발송 중...")
-    from sales_pipeline.email_sender.gmail_client import send_test_email
+    from leadflow_common.email_sender.gmail_client import send_test_email
 
     send_test_email(lead_id=lead_id)
     typer.echo("✅ 발송 완료")
 
 
-# === 캠페인 (Phase 4에서 구현) ===
+# === 캠페인 ===
 
 
 @campaign_app.command("run")
@@ -151,7 +149,7 @@ def campaign_run(
 ) -> None:
     """캠페인을 수동 실행한다."""
     typer.echo(f"🚀 캠페인 '{name}' 실행 중...")
-    from sales_pipeline.campaign.drip import run_campaign_by_name
+    from leadflow_common.campaign.drip import run_campaign_by_name
 
     result = run_campaign_by_name(name=name)
     typer.echo(f"✅ 완료: {result['sent']}건 발송, {result['skipped']}건 스킵")
@@ -165,8 +163,8 @@ def campaign_create(
     max_seq: int = typer.Option(3, help="최대 후속 발송 횟수"),
 ) -> None:
     """새 캠페인을 생성한다."""
-    from sales_pipeline.db.engine import get_db
-    from sales_pipeline.db.repository import create_campaign
+    from leadflow_common.db.engine import get_db
+    from leadflow_common.db.repository import create_campaign
 
     with get_db() as db:
         campaign = create_campaign(
@@ -183,7 +181,7 @@ def campaign_create(
 def scheduler_start() -> None:
     """Drip 스케줄러를 시작한다."""
     typer.echo("⏰ Drip 스케줄러 시작...")
-    from sales_pipeline.campaign.scheduler import start_scheduler
+    from leadflow_common.campaign.scheduler import start_scheduler
 
     start_scheduler()
 
@@ -192,7 +190,7 @@ def scheduler_start() -> None:
 def monitor_start() -> None:
     """수신함 모니터링을 시작한다."""
     typer.echo("👁️ 수신함 모니터링 시작...")
-    from sales_pipeline.monitor.inbox_watcher import start_monitoring
+    from leadflow_common.monitor.inbox_watcher import start_monitoring
 
     start_monitoring()
 
