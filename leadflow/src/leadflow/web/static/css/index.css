@@ -266,9 +266,8 @@ h1, h2, h3, h4, .brand-name {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(var(--stat-grid-min), 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: var(--space-6);
-  margin-bottom: var(--space-10);
 }
 
 .stat-card {
@@ -535,6 +534,176 @@ h1, h2, h3, h4, .brand-name {
   align-items: flex-end;
 }
 
+/* 대시보드 상단 2열 레이아웃 */
+.dashboard-top-row {
+  display: grid;
+  grid-template-columns: 1fr var(--setup-guide-width);
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
+  align-items: start;
+}
+
+.setup-guide {
+  padding: var(--space-6);
+}
+
+.setup-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.setup-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid var(--border-color);
+}
+
+.setup-item-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.setup-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-round);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dot-ok {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.dot-warn {
+  background-color: var(--color-danger-100);
+  color: var(--danger);
+}
+
+.setup-dot-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.setup-item-label {
+  font-size: var(--text-body-sm);
+  font-weight: var(--font-semibold);
+}
+
+.setup-guide-btn {
+  width: 100%;
+  font-size: var(--text-body-sm);
+  height: 42px;
+}
+
+.setup-guide-btn-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* 카드 타이틀 아이콘 */
+.card-title-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--primary);
+}
+
+/* 최근 수집 리드 테이블 헬퍼 */
+.recent-leads {
+  margin-bottom: 0;
+}
+
+.lead-name-cell {
+  font-weight: var(--font-semibold);
+}
+
+.lead-name-link {
+  color: var(--text-main);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lead-external-icon {
+  width: 12px;
+  height: 12px;
+  color: var(--text-light);
+}
+
+.lead-phone {
+  color: var(--text-main);
+}
+
+.lead-email {
+  color: var(--primary);
+  font-weight: var(--font-medium);
+}
+
+.category-badge {
+  font-weight: var(--font-medium);
+}
+
+.table-footer {
+  margin-top: var(--space-6);
+  text-align: right;
+}
+
+.btn-sm {
+  padding: 0.6rem 1.2rem;
+  font-size: var(--text-sm);
+}
+
+.btn-sm-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.btn-md {
+  margin-top: var(--space-6);
+  padding: var(--space-3) var(--space-6);
+}
+
+.btn-md-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* 빈 상태 (empty state) */
+.empty-state {
+  text-align: center;
+  padding: var(--space-12) var(--space-4);
+  color: var(--text-muted);
+}
+
+.empty-state-icon {
+  width: 48px;
+  height: 48px;
+  stroke-width: 1.5;
+  color: var(--text-light);
+  margin-bottom: var(--space-4);
+}
+
+.empty-state-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+}
+
+.empty-state-desc {
+  font-size: var(--text-sm);
+  color: var(--text-light);
+  margin-top: var(--space-1);
+}
+
 @media (max-width: 768px) {
   .sidebar {
     width: var(--sidebar-collapsed);
@@ -548,6 +717,12 @@ h1, h2, h3, h4, .brand-name {
     padding: var(--space-8);
   }
   .scrape-controls {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-top-row {
+    grid-template-columns: 1fr;
+  }
+  .stats-grid {
     grid-template-columns: 1fr;
   }
 }

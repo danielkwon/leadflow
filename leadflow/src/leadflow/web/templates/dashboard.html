@@ -10,163 +10,154 @@
   <p class="page-desc">반가워요, <strong>{{ user.company_name or 'LeadFlow 파트너' }}</strong>님! 오늘의 영업 파이프라인 흐름을 한눈에 확인하세요.</p>
 </div>
 
-<!-- 통계 메트릭 그리드 -->
-<section class="stats-grid">
-  <!-- 전체 리드 카드 -->
-  <div class="card stat-card">
-    <div class="stat-header">
-      <span class="stat-label">전체 수집 리드</span>
-      <div class="stat-icon">
-        <i data-lucide="users"></i>
+<!-- 상단: 통계 카드 (2x2) + 연동 상태 가이드 -->
+<div class="dashboard-top-row">
+  <div class="stats-grid">
+    <div class="card stat-card">
+      <div class="stat-header">
+        <span class="stat-label">전체 수집 리드</span>
+        <div class="stat-icon">
+          <i data-lucide="users"></i>
+        </div>
       </div>
+      <span class="stat-value">{{ stats.total }}</span>
     </div>
-    <span class="stat-value">{{ stats.total }}</span>
+
+    <div class="card stat-card">
+      <div class="stat-header">
+        <span class="stat-label">신규 리드 (대기)</span>
+        <div class="stat-icon">
+          <i data-lucide="user-plus"></i>
+        </div>
+      </div>
+      <span class="stat-value">{{ stats.new }}</span>
+    </div>
+
+    <div class="card stat-card">
+      <div class="stat-header">
+        <span class="stat-label">회신 완료 (관심)</span>
+        <div class="stat-icon">
+          <i data-lucide="mail-check"></i>
+        </div>
+      </div>
+      <span class="stat-value">{{ stats.replied }}</span>
+    </div>
+
+    <div class="card stat-card">
+      <div class="stat-header">
+        <span class="stat-label">영업 전환 성공</span>
+        <div class="stat-icon">
+          <i data-lucide="award"></i>
+        </div>
+      </div>
+      <span class="stat-value">{{ stats.converted }}</span>
+    </div>
   </div>
 
-  <!-- 신규 리드 카드 -->
-  <div class="card stat-card">
-    <div class="stat-header">
-      <span class="stat-label">신규 리드 (대기)</span>
-      <div class="stat-icon">
-        <i data-lucide="user-plus"></i>
-      </div>
-    </div>
-    <span class="stat-value">{{ stats.new }}</span>
-  </div>
-
-  <!-- 회신 리드 카드 -->
-  <div class="card stat-card">
-    <div class="stat-header">
-      <span class="stat-label">회신 완료 (관심)</span>
-      <div class="stat-icon">
-        <i data-lucide="mail-check"></i>
-      </div>
-    </div>
-    <span class="stat-value">{{ stats.replied }}</span>
-  </div>
-
-  <!-- 전환 완료 카드 -->
-  <div class="card stat-card">
-    <div class="stat-header">
-      <span class="stat-label">영업 전환 성공</span>
-      <div class="stat-icon">
-        <i data-lucide="award"></i>
-      </div>
-    </div>
-    <span class="stat-value">{{ stats.converted }}</span>
-  </div>
-</section>
-
-<!-- 2열 그리드 정보 영역 -->
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; align-items: start;">
-  <!-- 최근 수집된 리드 목록 -->
-  <section class="card" style="margin-bottom: 0;">
+  <div class="card setup-guide">
     <h2 class="card-title">
-      <i data-lucide="clock" style="width: 20px; height: 20px; color: var(--primary);"></i>
-      최근 수집 리드 (최신 5개)
-    </h2>
-    
-    {% if recent_leads %}
-    <div class="table-container">
-      <table class="custom-table">
-        <thead>
-          <tr>
-            <th>업체명</th>
-            <th>업종/카테고리</th>
-            <th>대표 연락처</th>
-            <th>이메일</th>
-            <th>상태</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for lead in recent_leads %}
-          <tr>
-            <td style="font-weight: 600;">
-              {% if lead.naver_link %}
-              <a href="{{ lead.naver_link }}" target="_blank" style="color: var(--text-main); text-decoration: none; display: flex; align-items: center; gap: 4px;">
-                {{ lead.company_name }}
-                <i data-lucide="external-link" style="width: 12px; height: 12px; color: var(--text-light);"></i>
-              </a>
-              {% else %}
-              {{ lead.company_name }}
-              {% endif %}
-            </td>
-            <td><span class="badge badge-contacted" style="font-weight: 500;">{{ lead.category }}</span></td>
-            <td>{{ lead.phone or '-' }}</td>
-            <td style="color: var(--primary); font-weight: 500;">{{ lead.email or '-' }}</td>
-            <td>
-              {% if lead.status == 'new' %}
-              <span class="badge badge-new">신규</span>
-              {% elif lead.status == 'replied' %}
-              <span class="badge badge-replied">회신됨</span>
-              {% else %}
-              <span class="badge badge-contacted">{{ lead.status }}</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    <div style="margin-top: 1.5rem; text-align: right;">
-      <a href="/scrape" class="btn btn-secondary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem;">
-        <span>전체 리드 및 수집 관리</span>
-        <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
-      </a>
-    </div>
-    {% else %}
-    <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
-      <i data-lucide="folder-open" style="width: 48px; height: 48px; stroke-width: 1.5; color: var(--text-light); margin-bottom: 1rem;"></i>
-      <p style="font-size: 0.95rem; font-weight: 500;">아직 수집된 영업 리드가 없습니다.</p>
-      <p style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.25rem;">수집 메뉴에서 지역과 업종 키워드를 지정하여 첫 리드를 모아보세요!</p>
-      <a href="/scrape" class="btn btn-primary" style="margin-top: 1.5rem; padding: 0.75rem 1.5rem;">
-        <i data-lucide="search" style="width: 16px; height: 16px;"></i>
-        <span>첫 리드 수집하러 가기</span>
-      </a>
-    </div>
-    {% endif %}
-  </section>
-
-  <!-- 서비스 연동 현황 및 퀵가이드 -->
-  <section class="card" style="margin-bottom: 0;">
-    <h2 class="card-title">
-      <i data-lucide="shield-check" style="width: 20px; height: 20px; color: var(--primary);"></i>
+      <i data-lucide="shield-check" class="card-title-icon"></i>
       연동 상태 가이드
     </h2>
-    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.5;">콜드 메일 자동 발송 및 맞춤형 AI 메일 초안 생성을 위해 아래 주요 서비스를 연동해 주셔야 합니다.</p>
-    
-    <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
-      <!-- OpenAI 연동 상태 -->
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; background-color: var(--bg-primary); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <div style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background-color: {% if setup.openai %}var(--success-light){% else %}#fee2e2{% endif %}; color: {% if setup.openai %}var(--success){% else %}var(--danger){% endif %};">
-            <i data-lucide="{% if setup.openai %}check{% else %}alert-circle{% endif %}" style="width: 16px; height: 16px;"></i>
+
+    <div class="setup-list">
+      <div class="setup-item">
+        <div class="setup-item-info">
+          <div class="setup-dot {{ 'dot-ok' if setup.openai else 'dot-warn' }}">
+            <i data-lucide="{{ 'check' if setup.openai else 'alert-circle' }}" class="setup-dot-icon"></i>
           </div>
-          <span style="font-size: 0.9rem; font-weight: 600;">OpenAI API Key</span>
+          <span class="setup-item-label">OpenAI API Key</span>
         </div>
-        <span class="badge {% if setup.openai %}badge-replied{% else %}badge-new{% endif %}" style="font-size: 0.7rem;">
-          {% if setup.openai %}연동 완료{% else %}미연동{% endif %}
+        <span class="badge {{ 'badge-replied' if setup.openai else 'badge-new' }}">
+          {{ '연동 완료' if setup.openai else '미연동' }}
         </span>
       </div>
 
-      <!-- Gmail 연동 상태 -->
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; background-color: var(--bg-primary); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <div style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background-color: {% if setup.gmail %}var(--success-light){% else %}#fee2e2{% endif %}; color: {% if setup.gmail %}var(--success){% else %}var(--danger){% endif %};">
-            <i data-lucide="{% if setup.gmail %}check{% else %}alert-circle{% endif %}" style="width: 16px; height: 16px;"></i>
+      <div class="setup-item">
+        <div class="setup-item-info">
+          <div class="setup-dot {{ 'dot-ok' if setup.gmail else 'dot-warn' }}">
+            <i data-lucide="{{ 'check' if setup.gmail else 'alert-circle' }}" class="setup-dot-icon"></i>
           </div>
-          <span style="font-size: 0.9rem; font-weight: 600;">Gmail OAuth</span>
+          <span class="setup-item-label">Gmail OAuth</span>
         </div>
-        <span class="badge {% if setup.gmail %}badge-replied{% else %}badge-new{% endif %}" style="font-size: 0.7rem;">
-          {% if setup.gmail %}연동 완료{% else %}미연동{% endif %}
+        <span class="badge {{ 'badge-replied' if setup.gmail else 'badge-new' }}">
+          {{ '연동 완료' if setup.gmail else '미연동' }}
         </span>
       </div>
     </div>
 
-    <a href="/settings" class="btn btn-primary" style="width: 100%; font-size: 0.9rem; height: 42px;">
-      <i data-lucide="settings-2" style="width: 16px; height: 16px;"></i>
+    <a href="/settings" class="btn btn-primary setup-guide-btn">
+      <i data-lucide="settings-2" class="setup-guide-btn-icon"></i>
       <span>연동 설정 및 갱신</span>
     </a>
-  </section>
+  </div>
 </div>
+
+<!-- 최근 수집 리드 테이블 (전체 폭) -->
+<section class="card recent-leads">
+  <h2 class="card-title">
+    <i data-lucide="clock" class="card-title-icon"></i>
+    최근 수집 리드 (최신 5개)
+  </h2>
+
+  {% if recent_leads %}
+  <div class="table-container">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>업체명</th>
+          <th>업종/카테고리</th>
+          <th>대표 연락처</th>
+          <th>이메일</th>
+          <th>상태</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lead in recent_leads %}
+        <tr>
+          <td class="lead-name-cell">
+            {% if lead.naver_link %}
+            <a href="{{ lead.naver_link }}" target="_blank" class="lead-name-link">
+              {{ lead.company_name }}
+              <i data-lucide="external-link" class="lead-external-icon"></i>
+            </a>
+            {% else %}
+            {{ lead.company_name }}
+            {% endif %}
+          </td>
+          <td><span class="badge badge-contacted category-badge">{{ lead.category }}</span></td>
+          <td><span class="lead-phone">{{ lead.phone or '-' }}</span></td>
+          <td><span class="lead-email">{{ lead.email or '-' }}</span></td>
+          <td>
+            {% if lead.status == 'new' %}
+            <span class="badge badge-new">신규</span>
+            {% elif lead.status == 'replied' %}
+            <span class="badge badge-replied">회신됨</span>
+            {% else %}
+            <span class="badge badge-contacted">{{ lead.status }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="table-footer">
+    <a href="/scrape" class="btn btn-secondary btn-sm">
+      <span>전체 리드 및 수집 관리</span>
+      <i data-lucide="arrow-right" class="btn-sm-icon"></i>
+    </a>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i data-lucide="folder-open" class="empty-state-icon"></i>
+    <p class="empty-state-title">아직 수집된 영업 리드가 없습니다.</p>
+    <p class="empty-state-desc">수집 메뉴에서 지역과 업종 키워드를 지정하여 첫 리드를 모아보세요!</p>
+    <a href="/scrape" class="btn btn-primary btn-md">
+      <i data-lucide="search" class="btn-md-icon"></i>
+      <span>첫 리드 수집하러 가기</span>
+    </a>
+  </div>
+  {% endif %}
+</section>
 {% endblock %}
