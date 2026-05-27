@@ -10,9 +10,8 @@
   <p class="page-desc">반가워요, <strong>{{ user.company_name or 'LeadFlow 파트너' }}</strong>님! 오늘의 영업 파이프라인 흐름을 한눈에 확인하세요.</p>
 </div>
 
-<!-- 상단: 통계 카드 (2x2) + 연동 상태 가이드 -->
-<div class="dashboard-top-row">
-  <div class="stats-grid">
+<!-- 상단: 통계 카드 (2x2) -->
+<div class="stats-grid">
     <div class="card stat-card">
       <div class="stat-header">
         <span class="stat-label">전체 수집 리드</span>
@@ -53,45 +52,6 @@
       <span class="stat-value">{{ stats.converted }}</span>
     </div>
   </div>
-
-  <div class="card setup-guide">
-    <h2 class="card-title">
-      <i data-lucide="shield-check" class="card-title-icon"></i>
-      연동 상태 가이드
-    </h2>
-
-    <div class="setup-list">
-      <div class="setup-item">
-        <div class="setup-item-info">
-          <div class="setup-dot {{ 'dot-ok' if setup.openai else 'dot-warn' }}">
-            <i data-lucide="{{ 'check' if setup.openai else 'alert-circle' }}" class="setup-dot-icon"></i>
-          </div>
-          <span class="setup-item-label">OpenAI API Key</span>
-        </div>
-        <span class="badge {{ 'badge-replied' if setup.openai else 'badge-new' }}">
-          {{ '연동 완료' if setup.openai else '미연동' }}
-        </span>
-      </div>
-
-      <div class="setup-item">
-        <div class="setup-item-info">
-          <div class="setup-dot {{ 'dot-ok' if setup.gmail else 'dot-warn' }}">
-            <i data-lucide="{{ 'check' if setup.gmail else 'alert-circle' }}" class="setup-dot-icon"></i>
-          </div>
-          <span class="setup-item-label">Gmail OAuth</span>
-        </div>
-        <span class="badge {{ 'badge-replied' if setup.gmail else 'badge-new' }}">
-          {{ '연동 완료' if setup.gmail else '미연동' }}
-        </span>
-      </div>
-    </div>
-
-    <a href="/settings" class="btn btn-primary setup-guide-btn">
-      <i data-lucide="settings-2" class="setup-guide-btn-icon"></i>
-      <span>연동 설정 및 갱신</span>
-    </a>
-  </div>
-</div>
 
 <!-- 최근 수집 리드 테이블 (전체 폭) -->
 <section class="card recent-leads">
