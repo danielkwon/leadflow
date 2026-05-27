@@ -267,7 +267,7 @@ h1, h2, h3, h4, .brand-name {
 .stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-6);
+  gap: var(--space-4);
 }
 
 .stat-card {
@@ -540,11 +540,14 @@ h1, h2, h3, h4, .brand-name {
   grid-template-columns: 1fr var(--setup-guide-width);
   gap: var(--space-6);
   margin-bottom: var(--space-6);
-  align-items: start;
+  align-items: stretch;
 }
 
 .setup-guide {
   padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .setup-list {
@@ -552,6 +555,8 @@ h1, h2, h3, h4, .brand-name {
   flex-direction: column;
   gap: var(--space-3);
   margin-bottom: var(--space-5);
+  flex-grow: 1;
+  justify-content: center;
 }
 
 .setup-item {
