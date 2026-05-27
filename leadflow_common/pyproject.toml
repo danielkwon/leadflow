@@ -28,6 +28,7 @@ dependencies = [
     "bcrypt>=4.1",
     "pyjwt>=2.8",
     "python-multipart>=0.0.9",
+    "playwright>=1.44",
 ]
 
 [project.optional-dependencies]

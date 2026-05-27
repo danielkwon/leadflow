@@ -1,0 +1,257 @@
+/* LeadFlow Design Token System */
+
+:root {
+  /* ========================================
+     Color Palette (Tailwind-inspired 50-900)
+     ======================================== */
+
+  /* Primary - Indigo Violet */
+  --color-primary-50: #eef2ff;
+  --color-primary-100: #e0e7ff;
+  --color-primary-200: #c7d2fe;
+  --color-primary-300: #a5b4fc;
+  --color-primary-400: #818cf8;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-primary-800: #3730a3;
+  --color-primary-900: #312e81;
+
+  /* Secondary - Sky Blue */
+  --color-secondary-50: #f0f9ff;
+  --color-secondary-100: #e0f2fe;
+  --color-secondary-200: #bae6fd;
+  --color-secondary-300: #7dd3fc;
+  --color-secondary-400: #38bdf8;
+  --color-secondary-500: #0ea5e9;
+  --color-secondary-600: #0284c7;
+  --color-secondary-700: #0369a1;
+  --color-secondary-800: #075985;
+  --color-secondary-900: #0c4a6e;
+
+  /* Success - Emerald Green */
+  --color-success-50: #ecfdf5;
+  --color-success-100: #d1fae5;
+  --color-success-200: #a7f3d0;
+  --color-success-300: #6ee7b7;
+  --color-success-400: #34d399;
+  --color-success-500: #10b981;
+  --color-success-600: #059669;
+  --color-success-700: #047857;
+  --color-success-800: #065f46;
+  --color-success-900: #064e3b;
+
+  /* Warning - Amber Gold */
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-200: #fde68a;
+  --color-warning-300: #fcd34d;
+  --color-warning-400: #fbbf24;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+  --color-warning-800: #92400e;
+  --color-warning-900: #78350f;
+
+  /* Danger - Rose Red */
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #fee2e2;
+  --color-danger-200: #fecaca;
+  --color-danger-300: #fca5a5;
+  --color-danger-400: #f87171;
+  --color-danger-500: #ef4444;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+  --color-danger-800: #991b1b;
+  --color-danger-900: #7f1d1d;
+
+  /* Neutral - Slate Gray */
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+  --color-neutral-950: #020617;
+
+  /* ========================================
+     Semantic Color Aliases (legacy support)
+     ======================================== */
+  --primary: var(--color-primary-600);
+  --primary-hover: var(--color-primary-700);
+  --primary-light: var(--color-primary-100);
+  --secondary: var(--color-secondary-500);
+  --bg-primary: var(--color-neutral-50);
+  --bg-secondary: #ffffff;
+  --bg-card: rgba(255, 255, 255, 0.85);
+  --bg-glass: rgba(255, 255, 255, 0.65);
+  --text-main: var(--color-neutral-900);
+  --text-muted: var(--color-neutral-600);
+  --text-light: var(--color-neutral-400);
+  --border-color: rgba(226, 232, 240, 0.8);
+  --success: var(--color-success-500);
+  --success-light: var(--color-success-100);
+  --danger: var(--color-danger-500);
+
+  /* ========================================
+     Alpha Channel Colors (rgba)
+     ======================================== */
+  --color-primary-a1: rgba(79, 70, 229, 0.01);
+  --color-primary-a4: rgba(79, 70, 229, 0.04);
+  --color-primary-a5: rgba(79, 70, 229, 0.05);
+  --color-primary-a8: rgba(79, 70, 229, 0.08);
+  --color-primary-a20: rgba(79, 70, 229, 0.2);
+  --color-primary-a30: rgba(79, 70, 229, 0.3);
+  --color-danger-a5: rgba(239, 68, 68, 0.05);
+  --color-danger-a20: rgba(239, 68, 68, 0.2);
+  --color-success-a20: rgba(16, 185, 129, 0.2);
+  --color-neutral-a30: rgba(148, 163, 184, 0.3);
+  --color-secondary-a2: rgba(14, 165, 233, 0.02);
+  --color-secondary-a3: rgba(14, 165, 233, 0.03);
+
+  /* ========================================
+     Typography
+     ======================================== */
+  --font-heading: 'Outfit', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.85rem;
+  --text-body-sm: 0.9rem;
+  --text-base: 0.95rem;
+  --text-lg: 1.2rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.75rem;
+  --text-4xl: 2rem;
+  --text-5xl: 2.25rem;
+
+  --font-light: 300;
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-extrabold: 800;
+
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.6;
+
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.05em;
+
+  /* ========================================
+     Spacing Scale
+     ======================================== */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-14: 3.5rem;
+
+  /* ========================================
+     Border Radius
+     ======================================== */
+  /* Non-standard spacing values needed by existing components */
+  --space-065: 0.65rem;
+  --space-085: 0.85rem;
+  --space-115: 1.15rem;
+
+  /* ========================================
+     Border Radius
+     ======================================== */
+  --radius-none: 0;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 50px;
+  --radius-round: 50%;
+  --radius-full: 9999px;
+  --radius-scrollbar: 10px;
+  --scrollbar-size: 6px;
+
+  /* ========================================
+     Shadows
+     ======================================== */
+  --shadow-xs: 0 2px 8px rgba(15, 23, 42, 0.03);
+  --shadow-sm: 0 4px 12px rgba(79, 70, 229, 0.2);
+  --shadow-md: 0 10px 30px -10px rgba(79, 70, 229, 0.08);
+  --shadow-lg: 0 20px 40px -15px rgba(15, 23, 42, 0.05);
+  --shadow-xl: 0 4px 14px rgba(79, 70, 229, 0.2);
+  --shadow-xl-hover: 0 6px 20px rgba(79, 70, 229, 0.3);
+  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
+  --shadow-focus-ring: 0 0 0 4px rgba(79, 70, 229, 0.08);
+
+  /* ========================================
+     Z-Index
+     ======================================== */
+  --z-behind: -1;
+  --z-base: 0;
+  --z-dropdown: 10;
+  --z-sticky: 100;
+  --z-overlay: 500;
+  --z-modal: 1000;
+  --z-toast: 2000;
+
+  /* ========================================
+     Layout
+     ======================================== */
+  --sidebar-width: 280px;
+  --sidebar-collapsed: 80px;
+  --content-max-width: 1300px;
+  --auth-card-width: 480px;
+  --scrape-btn-width: 120px;
+  --decoration-size-lg: 600px;
+  --decoration-size-md: 500px;
+  --aura-offset-top: -200px;
+  --aura-offset-right: -200px;
+  --aura-offset-bottom: -100px;
+  --aura-offset-left: -200px;
+  --icon-size-sm: 38px;
+  --icon-size-md: 40px;
+  --stat-grid-min: 220px;
+
+  /* ========================================
+     Transitions
+     ======================================== */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 250ms;
+  --duration-card: 300ms;
+
+  /* ========================================
+     Easing
+     ======================================== */
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ========================================
+     Borders
+     ======================================== */
+  --border-width: 1px;
+  --border-width-md: 1.5px;
+  --border-width-lg: 2px;
+
+  /* ========================================
+     Gradient & Effects
+     ======================================== */
+  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  --gradient-aura-1: radial-gradient(circle, var(--color-primary-a5) 0%, var(--color-secondary-a2) 60%, transparent 100%);
+  --gradient-aura-2: radial-gradient(circle, var(--color-secondary-a3) 0%, var(--color-primary-a1) 50%, transparent 100%);
+  --blur-md: 16px;
+  --blur-lg: 20px;
+}
