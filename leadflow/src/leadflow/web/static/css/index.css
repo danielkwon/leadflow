@@ -710,6 +710,164 @@ h1, h2, h3, h4, .brand-name {
   margin-top: var(--space-1);
 }
 
+/* 리드 검색 & 필터 툴바 */
+.leads-toolbar {
+  margin-bottom: var(--space-4);
+}
+
+.leads-toolbar-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.search-box {
+  flex: 1;
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--text-light);
+  pointer-events: none;
+}
+
+.search-input {
+  padding-left: var(--space-10);
+}
+
+.filter-select {
+  width: 140px;
+}
+
+.btn-filter {
+  white-space: nowrap;
+}
+
+/* 리드 카드 헤더 */
+.leads-card {
+  margin-bottom: 0;
+}
+
+.leads-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-6);
+}
+
+/* 리드 연락처 행 */
+.lead-contact-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--text-body-sm);
+}
+
+/* 지역 태그 */
+.lead-region-tag {
+  font-size: var(--text-xs);
+  color: var(--text-light);
+  font-weight: var(--font-semibold);
+  background: var(--bg-primary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-right: 6px;
+}
+
+/* 페이지네이션 */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: var(--border-width) solid var(--border-color);
+}
+
+.btn-page:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-weight: var(--font-medium);
+}
+
+/* 진행 카드 */
+.progress-card {
+  border: var(--border-width-md) solid var(--primary);
+  background: var(--color-primary-a2);
+}
+
+.progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.progress-pct {
+  font-weight: var(--font-bold);
+  color: var(--primary);
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+}
+
+.progress-bar-wrap {
+  background: var(--primary-light);
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: var(--space-4);
+  border: var(--border-width) solid var(--border-color);
+}
+
+.progress-bar-fill {
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  width: 0;
+  height: 100%;
+  transition: width var(--duration-card) ease;
+}
+
+.progress-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--text-sm);
+}
+
+.progress-msg {
+  color: var(--text-muted);
+  font-weight: var(--font-medium);
+}
+
+.progress-count {
+  color: var(--text-main);
+  font-weight: var(--font-semibold);
+}
+
+/* 수집 설명 */
+.scrape-desc {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-6);
+}
+
+/* color-primary-alpha-2 token needed */
+:root {
+  --color-primary-a2: rgba(79, 70, 229, 0.02);
+}
+
 @media (max-width: 768px) {
   .sidebar {
     width: var(--sidebar-collapsed);

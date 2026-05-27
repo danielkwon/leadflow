@@ -160,4 +160,44 @@
   </div>
   {% endif %}
 </section>
+
+<!-- 수집 히스토리 -->
+{% if scrape_logs %}
+<section class="card recent-leads" style="margin-top: var(--space-6);">
+  <h2 class="card-title">
+    <i data-lucide="history" class="card-title-icon"></i>
+    최근 수집 히스토리
+  </h2>
+  <div class="table-container">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>일시</th>
+          <th>지역</th>
+          <th>키워드</th>
+          <th>수집 건수</th>
+          <th>상태</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sl in scrape_logs %}
+        <tr>
+          <td>{{ sl.created_at.strftime('%m/%d %H:%M') if sl.created_at else '-' }}</td>
+          <td>{{ sl.region }}</td>
+          <td>{{ sl.keyword }}</td>
+          <td><span class="badge badge-new">{{ sl.leads_count }}건</span></td>
+          <td>
+            {% if sl.status == 'completed' %}
+            <span class="badge badge-replied">완료</span>
+            {% else %}
+            <span class="badge badge-contacted">{{ sl.status }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
 {% endblock %}

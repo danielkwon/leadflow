@@ -3,18 +3,20 @@
 SaaS형 회원가입/로그인 관리, 대시보드 메트릭 시각화,
 가변 지역/업종 기반 크롤링 제어, 개별 암호화 자격증명 관리 기능을 담당한다.
 """
+import csv
+import io
 import os
 import re
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status, BackgroundTasks
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from leadflow_common.db.engine import get_db_api
+from leadflow_common.db.engine import get_db, get_db_api
 from leadflow_common.db.models import User, UserCredential, Lead, Campaign, EmailLog, Reply, Feedback
-from leadflow_common.db.repository import get_leads, count_leads, get_active_campaigns
+from leadflow_common.db.repository import get_leads, count_leads, get_active_campaigns, add_scrape_log, get_scrape_logs
 from leadflow_common.utils.security import (
     create_access_token,
     decode_access_token,
@@ -236,6 +238,9 @@ async def dashboard_get(request: Request, user: User = Depends(get_current_user)
     has_openai = bool(creds.encrypted_openai_key) if creds else False
     has_gmail = bool(creds.encrypted_gmail_credentials) if creds else False
     
+    # 수집 히스토리
+    scrape_logs = get_scrape_logs(db, user_id=user.id, limit=5)
+    
     return templates.TemplateResponse(
         request,
         "dashboard.html",
@@ -252,6 +257,7 @@ async def dashboard_get(request: Request, user: User = Depends(get_current_user)
                 "openai": has_openai,
                 "gmail": has_gmail
             },
+            "scrape_logs": scrape_logs,
             "active_page": "dashboard"
         }
     )
@@ -283,9 +289,14 @@ def _background_scrape_task(user_id: int, region: str, keyword: str, max_results
     """백그라운드 스크래핑 워커 함수."""
     try:
         log.info("백그라운드 스크래핑 태스크 개시", user_id=user_id, region=region, keyword=keyword)
-        scrape_leads(user_id=user_id, region=region, keyword=keyword, max_results=max_results)
+        result = scrape_leads(user_id=user_id, region=region, keyword=keyword, max_results=max_results)
+        count = result.get("added", 0)
+        with get_db() as db:
+            add_scrape_log(db, user_id=user_id, region=region, keyword=keyword, leads_count=count)
     except Exception as e:
         log.error("백그라운드 수집 동작 중 예외 발생", error=str(e), user_id=user_id)
+        with get_db() as db:
+            add_scrape_log(db, user_id=user_id, region=region, keyword=keyword, leads_count=0, status="failed")
 
 
 @router.post("/scrape")
@@ -545,10 +556,22 @@ async def scrape_start_api(
 @router.get("/api/scrape/leads")
 async def scrape_leads_api(
     user: User = Depends(get_current_user),
-    db: Session = Depends(get_db_api)
+    db: Session = Depends(get_db_api),
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    region: Optional[str] = None,
+    page: int = 1,
+    per_page: int = 20,
 ):
-    """현재 로그인 유저가 수집 완료한 리드 목록 데이터를 실시간 JSON 형식으로 반환한다."""
-    leads = get_leads(db, user_id=user.id, limit=50)
+    """필터링 + 검색 + 페이지네이션 지원 리드 목록 API."""
+    offset = (page - 1) * per_page
+    leads = get_leads(
+        db, user_id=user.id, search=search, status=status, region=region,
+        limit=per_page, offset=offset,
+    )
+    total_count = count_leads(db, user_id=user.id, status=status, region=region, search=search)
+    total_pages = max(1, (total_count + per_page - 1) // per_page)
+
     lead_list = []
     for lead in leads:
         lead_list.append({
@@ -564,7 +587,43 @@ async def scrape_leads_api(
             "status": lead.status,
             "naver_link": lead.naver_link or ""
         })
-    return lead_list
+    return {
+        "leads": lead_list,
+        "page": page,
+        "per_page": per_page,
+        "total_count": total_count,
+        "total_pages": total_pages,
+    }
+
+
+@router.get("/api/scrape/leads/csv")
+async def scrape_leads_csv(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db_api),
+):
+    """모든 리드를 CSV 파일로 다운로드."""
+    leads = get_leads(db, user_id=user.id, limit=10000)
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["업체명", "대표자", "전화번호", "이메일", "주소", "업종", "지역", "상태", "수집일"])
+    for lead in leads:
+        writer.writerow([
+            lead.company_name,
+            lead.representative or "",
+            format_phone_number(lead.phone) if lead.phone else "",
+            lead.email or "",
+            lead.road_address or lead.address or "",
+            lead.category,
+            lead.region,
+            lead.status,
+            lead.created_at.strftime("%Y-%m-%d") if lead.created_at else "",
+        ])
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=leadflow_leads.csv"}
+    )
 
 
 # --- 검수자 실시간 피드백 챗봇 & 백로그 트래커 API ---

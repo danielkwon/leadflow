@@ -223,3 +223,24 @@ class Feedback(Base):
 
     def __repr__(self) -> str:
         return f"<Feedback id={self.id} user_id={self.user_id} reporter='{self.reporter_name}' status='{self.status}'>"
+
+
+class ScrapeLog(Base):
+    """리드 수집 작업 히스토리."""
+
+    __tablename__ = "scrape_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=False, index=True
+    )
+    region: Mapped[str] = mapped_column(String(50), nullable=False)
+    keyword: Mapped[str] = mapped_column(String(100), nullable=False)
+    leads_count: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(20), default="completed")
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+
+    def __repr__(self) -> str:
+        return f"<ScrapeLog id={self.id} user_id={self.user_id} region='{self.region}' keyword='{self.keyword}'>"

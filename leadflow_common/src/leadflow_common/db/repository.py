@@ -8,7 +8,7 @@ from typing import Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from leadflow_common.db.models import Campaign, EmailLog, Lead, Reply
+from leadflow_common.db.models import Campaign, EmailLog, Lead, Reply, ScrapeLog
 from leadflow_common.utils.logging import get_logger
 
 log = get_logger("db.repository")
@@ -45,6 +45,7 @@ def get_leads(
     status: Optional[str] = None,
     region: Optional[str] = None,
     has_email: Optional[bool] = None,
+    search: Optional[str] = None,
     opt_out: bool = False,
     limit: int = 100,
     offset: int = 0,
@@ -59,6 +60,14 @@ def get_leads(
         query = query.filter(Lead.email.isnot(None), Lead.email != "")
     elif has_email is False:
         query = query.filter((Lead.email.is_(None)) | (Lead.email == ""))
+    if search:
+        like = f"%{search}%"
+        query = query.filter(
+            (Lead.company_name.ilike(like)) |
+            (Lead.region.ilike(like)) |
+            (Lead.category.ilike(like)) |
+            (Lead.phone.ilike(like))
+        )
     return query.order_by(Lead.created_at.desc()).limit(limit).offset(offset).all()
 
 
@@ -94,11 +103,26 @@ def update_lead_email(db: Session, lead_id: int, user_id: int, email: str) -> Op
     return lead
 
 
-def count_leads(db: Session, user_id: int, status: Optional[str] = None) -> int:
-    """사용자별 리드 수를 카운트한다."""
+def count_leads(
+    db: Session,
+    user_id: int,
+    status: Optional[str] = None,
+    region: Optional[str] = None,
+    search: Optional[str] = None,
+) -> int:
+    """사용자별 리드 수를 카운트한다 (필터 지원)."""
     query = db.query(func.count(Lead.id)).filter(Lead.user_id == user_id)
     if status:
         query = query.filter(Lead.status == status)
+    if region:
+        query = query.filter(Lead.region == region)
+    if search:
+        like = f"%{search}%"
+        query = query.filter(
+            (Lead.company_name.ilike(like)) |
+            (Lead.region.ilike(like)) |
+            (Lead.category.ilike(like))
+        )
     return query.scalar() or 0
 
 
@@ -216,3 +240,32 @@ def mark_reply_synced(db: Session, reply_id: int, user_id: int) -> None:
     if reply:
         reply.synced_to_sheet = True
         db.flush()
+
+
+# === ScrapeLog CRUD ===
+
+
+def add_scrape_log(db: Session, user_id: int, region: str, keyword: str, leads_count: int = 0, status: str = "completed") -> ScrapeLog:
+    """수집 작업 기록을 생성한다."""
+    log_entry = ScrapeLog(
+        user_id=user_id,
+        region=region,
+        keyword=keyword,
+        leads_count=leads_count,
+        status=status,
+    )
+    db.add(log_entry)
+    db.flush()
+    log.info("스크랩 로그 기록", user_id=user_id, region=region, keyword=keyword, count=leads_count)
+    return log_entry
+
+
+def get_scrape_logs(db: Session, user_id: int, limit: int = 10) -> list[ScrapeLog]:
+    """사용자의 수집 히스토리를 조회한다."""
+    return (
+        db.query(ScrapeLog)
+        .filter(ScrapeLog.user_id == user_id)
+        .order_by(ScrapeLog.created_at.desc())
+        .limit(limit)
+        .all()
+    )
