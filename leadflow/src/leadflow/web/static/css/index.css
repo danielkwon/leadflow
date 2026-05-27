@@ -537,17 +537,18 @@ h1, h2, h3, h4, .brand-name {
 /* 대시보드 상단 2열 레이아웃 */
 .dashboard-top-row {
   display: grid;
-  grid-template-columns: 1fr var(--setup-guide-width);
-  gap: var(--space-6);
+  grid-template-columns: 1fr 1fr var(--setup-guide-width);
+  gap: var(--space-4);
   margin-bottom: var(--space-6);
-  align-items: stretch;
+}
+
+.stats-grid {
+  display: contents;
 }
 
 .setup-guide {
+  grid-row: span 2;
   padding: var(--space-6);
-  display: flex;
-  flex-direction: column;
-  height: 100%;
 }
 
 .setup-list {
@@ -727,7 +728,7 @@ h1, h2, h3, h4, .brand-name {
   .dashboard-top-row {
     grid-template-columns: 1fr;
   }
-  .stats-grid {
-    grid-template-columns: 1fr;
+  .setup-guide {
+    grid-row: auto;
   }
 }
