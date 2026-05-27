@@ -167,6 +167,7 @@ async def login_post(
     request: Request,
     email: str = Form(...),
     password: str = Form(...),
+    remember_me: str = Form(None),
     db: Session = Depends(get_db_api)
 ):
     user = db.query(User).filter(User.email == email).first()
@@ -177,18 +178,25 @@ async def login_post(
             {"error": "이메일 또는 비밀번호가 정확하지 않습니다.", "info_msg": None}
         )
     
-    # 로그인 성공 시 24시간 유효 토큰 발급
-    access_token = create_access_token(data={"sub": user.email})
+    # 자동 로그인 체크 시 30일, 기본 24시간
+    import datetime as dt
+    if remember_me == "1":
+        expires_delta = dt.timedelta(days=30)
+        cookie_max_age = 60 * 60 * 24 * 30
+    else:
+        expires_delta = dt.timedelta(hours=24)
+        cookie_max_age = 60 * 60 * 24
+
+    access_token = create_access_token(data={"sub": user.email}, expires_delta=expires_delta)
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     
-    # 보안 HTTP-Only 세션 쿠키 부여
     from leadflow_common.settings import get_settings
     settings = get_settings()
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        max_age=60 * 60 * 24, # 24시간
+        max_age=cookie_max_age,
         samesite="lax",
         secure=(settings.app_env == "production"),
     )

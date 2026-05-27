@@ -10,7 +10,6 @@
     <p class="auth-subtitle">B2B 리드 수집 및 영업 자동화 파이프라인 플랫폼</p>
   </div>
 
-  <!-- 안내 메시지 또는 에러 메시지 표시 -->
   {% if info_msg %}
   <div class="alert alert-success">
     {{ info_msg }}
@@ -31,7 +30,17 @@
 
     <div class="form-group">
       <label for="password" class="form-label">비밀번호</label>
-      <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+      <div style="position: relative;">
+        <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required autocomplete="current-password" style="padding-right: 44px;">
+        <button type="button" id="toggle-password" class="password-toggle" title="비밀번호 보기" tabindex="-1">
+          <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: -4px;">
+      <input type="checkbox" id="remember_me" name="remember_me" value="1" style="width: 16px; height: 16px; accent-color: var(--primary, #4f46e5);">
+      <label for="remember_me" class="form-label" style="margin: 0; cursor: pointer; font-size: 0.875rem; color: var(--text-secondary, #6b7280);">자동 로그인 (30일 유지)</label>
     </div>
 
     <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; height: 48px;">
@@ -45,4 +54,44 @@
     <a href="/signup">회원가입하기</a>
   </div>
 </div>
+
+<style>
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+.password-toggle:hover {
+  color: #4f46e5;
+}
+</style>
+
+<script>
+(function() {
+  const toggleBtn = document.getElementById('toggle-password');
+  const passwordInput = document.getElementById('password');
+  let visible = false;
+
+  toggleBtn.addEventListener('click', function() {
+    visible = !visible;
+    passwordInput.type = visible ? 'text' : 'password';
+    var icon = toggleBtn.querySelector('[data-lucide]');
+    if (icon) {
+      icon.setAttribute('data-lucide', visible ? 'eye-off' : 'eye');
+      if (window.lucide) lucide.createIcons();
+    }
+  });
+})();
+</script>
 {% endblock %}
