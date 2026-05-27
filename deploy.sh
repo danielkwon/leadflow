@@ -224,11 +224,29 @@ for i in $(seq 1 $MAX_RETRIES); do
     done
 
     if [ "$ALL_RUNNING" = true ]; then
+        # Python http.client로 헬스체크 (curl 없이 Python 내장 모듈 사용)
+        PY_CHECK='
+import urllib.request, sys
+try:
+    req = urllib.request.Request(sys.argv[1])
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        sys.exit(0 if resp.status == 200 else 1)
+except Exception:
+    sys.exit(1)
+'
         # 1차: 로그인 페이지 응답 확인
-        HTTP_CODE=$(docker exec leadflow-web curl -s -o /dev/null -w "%{http_code}" --max-time 5 "http://localhost:8080/login" 2>/dev/null || echo "000")
+        if docker exec leadflow-web python -c "$PY_CHECK" "http://localhost:8080/login" 2>/dev/null; then
+            HTTP_CODE=200
+        else
+            HTTP_CODE=000
+        fi
 
         # 2차: 정적 자산 접근 확인 (CSS)
-        STATIC_CODE=$(docker exec leadflow-web curl -s -o /dev/null -w "%{http_code}" --max-time 5 "http://localhost:8080/static/css/index.css" 2>/dev/null || echo "000")
+        if docker exec leadflow-web python -c "$PY_CHECK" "http://localhost:8080/static/css/index.css" 2>/dev/null; then
+            STATIC_CODE=200
+        else
+            STATIC_CODE=000
+        fi
 
         if [ "$HTTP_CODE" = "200" ] && [ "$STATIC_CODE" = "200" ]; then
             ok "Health Check 최종 통과! (시도: ${i}/${MAX_RETRIES}, 로그인: ${HTTP_CODE}, 정적파일: ${STATIC_CODE})"
