@@ -8,7 +8,7 @@ from typing import Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from leadflow_common.db.models import Campaign, EmailLog, Lead, Reply, ScrapeLog
+from leadflow_common.db.models import Campaign, EmailLog, Lead, Reply, ScrapeLog, ScrapeSession, ScrapeSessionLead
 from leadflow_common.utils.logging import get_logger
 
 log = get_logger("db.repository")
@@ -269,3 +269,85 @@ def get_scrape_logs(db: Session, user_id: int, limit: int = 10) -> list[ScrapeLo
         .limit(limit)
         .all()
     )
+
+
+# === ScrapeSession CRUD ===
+
+
+def create_scrape_session(
+    db: Session, user_id: int, name: str, region: str, keyword: str, lead_ids: list[int]
+) -> ScrapeSession:
+    """새 수집 세션을 생성하고 리드를 연결한다."""
+    session = ScrapeSession(
+        user_id=user_id,
+        name=name,
+        region=region,
+        keyword=keyword,
+        leads_count=len(lead_ids),
+    )
+    db.add(session)
+    db.flush()
+
+    for lid in lead_ids:
+        db.add(ScrapeSessionLead(session_id=session.id, lead_id=lid))
+    db.flush()
+
+    log.info("수집 세션 생성", session_id=session.id, name=name, count=len(lead_ids), user_id=user_id)
+    return session
+
+
+def get_scrape_sessions(db: Session, user_id: int, limit: int = 50, offset: int = 0) -> list[ScrapeSession]:
+    """사용자의 수집 세션 목록을 조회한다."""
+    return (
+        db.query(ScrapeSession)
+        .filter(ScrapeSession.user_id == user_id)
+        .order_by(ScrapeSession.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+
+
+def get_scrape_session_count(db: Session, user_id: int) -> int:
+    """사용자의 전체 세션 수를 반환한다."""
+    return db.query(func.count(ScrapeSession.id)).filter(ScrapeSession.user_id == user_id).scalar() or 0
+
+
+def get_scrape_session_by_id(db: Session, session_id: int, user_id: int) -> Optional[ScrapeSession]:
+    """ID로 수집 세션을 조회한다."""
+    return db.query(ScrapeSession).filter(ScrapeSession.id == session_id, ScrapeSession.user_id == user_id).first()
+
+
+def get_leads_by_session(db: Session, session_id: int, user_id: int) -> list[Lead]:
+    """특정 세션에 연결된 리드 목록을 조회한다."""
+    lead_ids = (
+        db.query(ScrapeSessionLead.lead_id)
+        .join(ScrapeSession, ScrapeSession.id == ScrapeSessionLead.session_id)
+        .filter(ScrapeSession.id == session_id, ScrapeSession.user_id == user_id)
+        .all()
+    )
+    ids = [row[0] for row in lead_ids]
+    if not ids:
+        return []
+    return db.query(Lead).filter(Lead.id.in_(ids)).order_by(Lead.created_at.desc()).all()
+
+
+def rename_scrape_session(db: Session, session_id: int, user_id: int, new_name: str) -> Optional[ScrapeSession]:
+    """수집 세션 이름을 변경한다."""
+    session = get_scrape_session_by_id(db, session_id, user_id)
+    if session:
+        session.name = new_name
+        db.flush()
+        log.info("세션 이름 변경", session_id=session_id, new_name=new_name, user_id=user_id)
+    return session
+
+
+def delete_scrape_session(db: Session, session_id: int, user_id: int) -> bool:
+    """수집 세션을 삭제한다."""
+    session = get_scrape_session_by_id(db, session_id, user_id)
+    if session:
+        db.delete(session)
+        db.flush()
+        log.info("세션 삭제", session_id=session_id, user_id=user_id)
+        return True
+    return False

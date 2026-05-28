@@ -244,3 +244,40 @@ class ScrapeLog(Base):
 
     def __repr__(self) -> str:
         return f"<ScrapeLog id={self.id} user_id={self.user_id} region='{self.region}' keyword='{self.keyword}'>"
+
+
+class ScrapeSession(Base):
+    """수집 결과 스냅샷 세션."""
+
+    __tablename__ = "scrape_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    region: Mapped[str] = mapped_column(String(50), nullable=False)
+    keyword: Mapped[str] = mapped_column(String(100), nullable=False)
+    leads_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
+
+    session_leads: Mapped[list["ScrapeSessionLead"]] = relationship(
+        back_populates="session", cascade="all, delete-orphan"
+    )
+
+    def __repr__(self) -> str:
+        return f"<ScrapeSession id={self.id} name='{self.name}' user_id={self.user_id}>"
+
+
+class ScrapeSessionLead(Base):
+    """수집 세션-리드 연결 테이블."""
+
+    __tablename__ = "scrape_session_leads"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[int] = mapped_column(Integer, ForeignKey("scrape_sessions.id"), nullable=False, index=True)
+    lead_id: Mapped[int] = mapped_column(Integer, ForeignKey("leads.id"), nullable=False, index=True)
+
+    session: Mapped["ScrapeSession"] = relationship(back_populates="session_leads")
+    lead: Mapped["Lead"] = relationship()
+
+    def __repr__(self) -> str:
+        return f"<ScrapeSessionLead session_id={self.session_id} lead_id={self.lead_id}>"
