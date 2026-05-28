@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% set active_page = 'sessions' %}
+
+{% block title %}{{ session.name }} - 수집 결과 - LeadFlow{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-row">
+    <div>
+      <a href="/sessions" class="back-link">
+        <i data-lucide="arrow-left" style="width:16px;height:16px;"></i>
+        <span>수집 결과 목록</span>
+      </a>
+      <h1 class="page-title" style="margin-top: var(--space-3);">
+        <span id="session-name-display">{{ session.name }}</span>
+        <button onclick="renameSession()" class="btn btn-ghost btn-icon" title="이름 변경" style="vertical-align: middle; margin-left: 8px;">
+          <i data-lucide="pencil" style="width:16px;height:16px;"></i>
+        </button>
+      </h1>
+    </div>
+    <div class="session-detail-meta">
+      <div class="meta-chip">
+        <i data-lucide="map-pin" style="width:14px;height:14px;"></i>
+        {{ session.region }}
+      </div>
+      <div class="meta-chip">
+        <i data-lucide="tag" style="width:14px;height:14px;"></i>
+        {{ session.keyword }}
+      </div>
+      <div class="meta-chip">
+        <i data-lucide="calendar" style="width:14px;height:14px;"></i>
+        {{ session.created_at.strftime('%Y-%m-%d %H:%M') if session.created_at else '-' }}
+      </div>
+      <div class="meta-chip highlight">
+        <i data-lucide="database" style="width:14px;height:14px;"></i>
+        {{ session.leads_count }}건
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if leads %}
+<section class="card">
+  <div class="leads-card-header">
+    <h2 class="card-title" style="margin-bottom:0;">
+      <i data-lucide="list" class="card-title-icon"></i>
+      수집 리드 목록
+    </h2>
+    <button onclick="deleteSession()" class="btn btn-danger btn-sm">
+      <i data-lucide="trash-2" class="btn-sm-icon"></i>
+      <span>세션 삭제</span>
+    </button>
+  </div>
+
+  <div class="table-container">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>업체명</th>
+          <th>연락처</th>
+          <th>이메일</th>
+          <th>주소</th>
+          <th>업종</th>
+          <th>상태</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lead in leads %}
+        <tr>
+          <td class="lead-name-cell">
+            {% if lead.naver_link %}
+            <a href="{{ lead.naver_link }}" target="_blank" class="lead-name-link">
+              {{ lead.company_name }}
+              <i data-lucide="external-link" class="lead-external-icon"></i>
+            </a>
+            {% else %}
+            {{ lead.company_name }}
+            {% endif %}
+          </td>
+          <td><span class="lead-phone">{{ lead.phone or '-' }}</span></td>
+          <td><span class="lead-email">{{ lead.email or '-' }}</span></td>
+          <td><span style="color:var(--text-muted);font-size:0.85rem;">{{ lead.road_address or lead.address or '-' }}</span></td>
+          <td><span class="badge badge-contacted">{{ lead.category }}</span></td>
+          <td>
+            {% if lead.status == 'new' %}
+            <span class="badge badge-new">신규</span>
+            {% elif lead.status == 'replied' %}
+            <span class="badge badge-replied">회신됨</span>
+            {% else %}
+            <span class="badge badge-contacted">{{ lead.status }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% else %}
+<div class="empty-state" style="margin-top: var(--space-8);">
+  <i data-lucide="alert-circle" class="empty-state-icon"></i>
+  <p class="empty-state-title">이 세션에 저장된 리드가 없습니다.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  async function renameSession() {
+    const newName = prompt("세션 이름을 입력하세요:", "{{ session.name }}");
+    if (!newName || newName.trim() === "{{ session.name }}") return;
+
+    try {
+      const formData = new FormData();
+      formData.append("name", newName.trim());
+      const resp = await fetch("/api/sessions/{{ session.id }}/rename", { method: "POST", body: formData });
+      if (!resp.ok) throw new Error("이름 변경 실패");
+      const result = await resp.json();
+      document.getElementById("session-name-display").textContent = result.name;
+    } catch (err) {
+      alert("이름 변경 중 오류: " + err.message);
+    }
+  }
+
+  async function deleteSession() {
+    if (!confirm("정말 이 세션을 삭제하시겠습니까?")) return;
+    try {
+      const resp = await fetch("/api/sessions/{{ session.id }}", { method: "DELETE" });
+      if (!resp.ok) throw new Error("삭제 실패");
+      window.location.href = "/sessions";
+    } catch (err) {
+      alert("삭제 중 오류: " + err.message);
+    }
+  }
+
+  lucide.createIcons();
+</script>
+{% endblock %}

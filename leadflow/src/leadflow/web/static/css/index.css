@@ -795,6 +795,212 @@ h1, h2, h3, h4, .brand-name {
   --color-primary-a2: rgba(79, 70, 229, 0.02);
 }
 
+/* === 수집 결과 세션 페이지 === */
+
+.sessions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.session-card {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: var(--text-main);
+  padding: var(--space-6);
+  transition: transform var(--duration-card) ease, box-shadow var(--duration-card) ease;
+  cursor: pointer;
+}
+
+.session-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.session-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-3);
+}
+
+.session-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.session-meta-top {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.session-date {
+  font-size: var(--text-xs);
+  color: var(--text-light);
+}
+
+.session-count {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 1px 8px;
+  border-radius: 9999px;
+}
+
+.session-name {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  margin: var(--space-2) 0 var(--space-3) 0;
+  color: var(--text-main);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-tags {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.session-tag {
+  font-size: var(--text-xs);
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-weight: var(--font-medium);
+}
+
+.region-tag {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.keyword-tag {
+  background: var(--secondary-light, rgba(236, 72, 153, 0.08));
+  color: var(--secondary);
+}
+
+.session-card-footer {
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.session-view-link {
+  font-size: var(--text-sm);
+  color: var(--primary);
+  font-weight: var(--font-medium);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 세션 상세 페이지 */
+
+.page-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--duration-card) ease;
+}
+
+.back-link:hover {
+  color: var(--primary);
+}
+
+.session-detail-meta {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  background: var(--bg-card);
+  padding: 4px 10px;
+  border-radius: 9999px;
+  border: var(--border-width) solid var(--border-color);
+  font-weight: var(--font-medium);
+}
+
+.meta-chip.highlight {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+/* 버튼 변형 */
+.btn-ghost {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  transition: background var(--duration-card) ease, color var(--duration-card) ease;
+}
+
+.btn-ghost:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity var(--duration-card) ease;
+}
+
+.btn-danger:hover {
+  opacity: 0.9;
+}
+
 @media (max-width: 768px) {
   .sidebar {
     width: var(--sidebar-collapsed);

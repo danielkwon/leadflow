@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% set active_page = 'sessions' %}
+
+{% block title %}수집 결과 - LeadFlow{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">
+    <i data-lucide="archive" style="width:28px;height:28px;vertical-align:middle;margin-right:8px;color:var(--primary);"></i>
+    수집 결과
+  </h1>
+  <p class="page-desc">지금까지 저장한 수집 결과 세션 목록입니다. 클릭하면 상세 리드를 확인할 수 있습니다.</p>
+</div>
+
+{% if sessions %}
+<div class="sessions-grid">
+  {% for session in sessions %}
+  <a href="/sessions/{{ session.id }}" class="card session-card">
+    <div class="session-card-header">
+      <div class="session-icon">
+        <i data-lucide="database" style="width:24px;height:24px;"></i>
+      </div>
+      <div class="session-meta-top">
+        <span class="session-date">{{ session.created_at.strftime('%m/%d %H:%M') if session.created_at else '-' }}</span>
+        <span class="session-count">{{ session.leads_count }}건</span>
+      </div>
+    </div>
+    <h3 class="session-name">{{ session.name }}</h3>
+    <div class="session-tags">
+      <span class="session-tag region-tag">{{ session.region }}</span>
+      <span class="session-tag keyword-tag">{{ session.keyword }}</span>
+    </div>
+    <div class="session-card-footer">
+      <span class="session-view-link">상세 보기 <i data-lucide="chevron-right" style="width:14px;height:14px;"></i></span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+<!-- 페이지네이션 -->
+{% if total_pages > 1 %}
+<div class="pagination" style="display:flex; margin-top: var(--space-8);">
+  <button class="btn btn-secondary btn-page" onclick="goToPage({{ page - 1 }})" {{ 'disabled' if page <= 1 }}>
+    <i data-lucide="chevron-left" class="btn-sm-icon"></i>
+  </button>
+  <span class="page-info">{{ page }} / {{ total_pages }}</span>
+  <button class="btn btn-secondary btn-page" onclick="goToPage({{ page + 1 }})" {{ 'disabled' if page >= total_pages }}>
+    <i data-lucide="chevron-right" class="btn-sm-icon"></i>
+  </button>
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state" style="margin-top: var(--space-8);">
+  <i data-lucide="archive" class="empty-state-icon"></i>
+  <p class="empty-state-title">저장된 수집 결과가 없습니다.</p>
+  <p class="empty-state-desc">리드 수집 페이지에서 결과를 저장하면 여기에 목록이 표시됩니다.</p>
+  <a href="/scrape" class="btn btn-primary btn-md">
+    <i data-lucide="search" class="btn-md-icon"></i>
+    <span>리드 수집하러 가기</span>
+  </a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  function goToPage(page) {
+    if (page < 1 || page > {{ total_pages }}) return;
+    window.location.href = "/sessions?page=" + page;
+  }
+  lucide.createIcons();
+</script>
+{% endblock %}

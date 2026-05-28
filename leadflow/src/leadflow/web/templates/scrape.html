@@ -112,6 +112,10 @@
       <i data-lucide="download" class="btn-sm-icon"></i>
       <span>CSV 내보내기</span>
     </button>
+    <button onclick="saveCurrentResults()" class="btn btn-primary btn-filter">
+      <i data-lucide="archive" class="btn-sm-icon"></i>
+      <span>결과 저장</span>
+    </button>
   </div>
 </section>
 
@@ -167,6 +171,7 @@
   let currentPage = 1;
   let totalPages = 1;
   let searchTimer = null;
+  let currentLeads = [];
 
   function debouncedSearch() {
     clearTimeout(searchTimer);
@@ -190,6 +195,7 @@
       
       currentPage = data.page;
       totalPages = data.total_pages;
+      currentLeads = data.leads;
       
       const totalEl = document.getElementById("total-count");
       if (totalEl) totalEl.textContent = data.total_count;
@@ -264,6 +270,42 @@
 
   function downloadCSV() {
     window.open("/api/scrape/leads/csv", "_blank");
+  }
+
+  async function saveCurrentResults() {
+    if (currentLeads.length === 0) {
+      alert("저장할 리드가 없습니다.");
+      return;
+    }
+
+    const search = document.getElementById("search-input")?.value || "";
+    const status = document.getElementById("filter-status")?.value || "";
+    const label = [search, status].filter(Boolean).join(" - ") || "전체";
+    const now = new Date();
+    const defaultName = `${label} ${String(now.getMonth()+1).padStart(2,"0")}/${String(now.getDate()).padStart(2,"0")} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+
+    const name = prompt("세션 이름을 입력하세요:", defaultName);
+    if (!name) return;
+
+    const leadIds = currentLeads.map(l => l.id).join(",");
+
+    try {
+      const formData = new FormData();
+      formData.append("region", search || "전체");
+      formData.append("keyword", status || "전체");
+      formData.append("name", name);
+      formData.append("lead_ids", leadIds);
+
+      const resp = await fetch("/api/sessions/save", { method: "POST", body: formData });
+      if (!resp.ok) throw new Error("저장 실패");
+      const result = await resp.json();
+
+      if (confirm(`"${result.name}" (${currentLeads.length}건) 저장 완료!\n수집 결과 페이지로 이동할까요?`)) {
+        window.location.href = "/sessions";
+      }
+    } catch (err) {
+      alert("저장 중 오류가 발생했습니다: " + err.message);
+    }
   }
 
   document.querySelector(".scrape-controls").addEventListener("submit", async function(e) {
