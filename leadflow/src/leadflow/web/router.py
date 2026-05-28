@@ -15,8 +15,12 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from leadflow_common.db.engine import get_db, get_db_api
-from leadflow_common.db.models import User, UserCredential, Lead, Campaign, EmailLog, Reply, Feedback
-from leadflow_common.db.repository import get_leads, count_leads, get_active_campaigns, add_scrape_log, get_scrape_logs
+from leadflow_common.db.models import User, UserCredential, Lead, Campaign, EmailLog, Reply, Feedback, ScrapeSession
+from leadflow_common.db.repository import (
+    get_leads, count_leads, get_active_campaigns, add_scrape_log, get_scrape_logs,
+    create_scrape_session, get_scrape_sessions, get_scrape_session_count,
+    get_scrape_session_by_id, get_leads_by_session, rename_scrape_session, delete_scrape_session,
+)
 from leadflow_common.utils.security import (
     create_access_token,
     decode_access_token,
@@ -624,6 +628,116 @@ async def scrape_leads_csv(
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=leadflow_leads.csv"}
     )
+
+
+# --- 수집 결과 세션 관리 ---
+
+
+@router.get("/sessions", response_class=HTMLResponse)
+async def sessions_get(
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db_api),
+    page: int = 1,
+):
+    """수집 결과 세션 목록 페이지."""
+    per_page = 20
+    offset = (page - 1) * per_page
+    sessions = get_scrape_sessions(db, user_id=user.id, limit=per_page, offset=offset)
+    total_count = get_scrape_session_count(db, user_id=user.id)
+    total_pages = max(1, (total_count + per_page - 1) // per_page)
+
+    return templates.TemplateResponse(
+        request,
+        "sessions.html",
+        {
+            "user": user,
+            "sessions": sessions,
+            "page": page,
+            "per_page": per_page,
+            "total_count": total_count,
+            "total_pages": total_pages,
+            "active_page": "sessions",
+        }
+    )
+
+
+@router.get("/sessions/{session_id}", response_class=HTMLResponse)
+async def session_detail_get(
+    request: Request,
+    session_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db_api),
+):
+    """수집 세션 상세 페이지."""
+    session = get_scrape_session_by_id(db, session_id, user.id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다.")
+
+    leads = get_leads_by_session(db, session_id, user.id)
+
+    return templates.TemplateResponse(
+        request,
+        "session_detail.html",
+        {
+            "user": user,
+            "session": session,
+            "leads": leads,
+            "active_page": "sessions",
+        }
+    )
+
+
+@router.post("/api/sessions/save")
+async def session_save_api(
+    region: str = Form(...),
+    keyword: str = Form(...),
+    name: str = Form(None),
+    lead_ids: str = Form(...),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db_api),
+):
+    """현재 수집 결과를 세션으로 저장한다."""
+    ids = [int(x.strip()) for x in lead_ids.split(",") if x.strip()]
+    if not ids:
+        raise HTTPException(status_code=400, detail="저장할 리드가 없습니다.")
+
+    import datetime as dt
+    now_str = dt.datetime.now().strftime("%m/%d %H:%M")
+    session_name = name or f"{region} {keyword} {now_str}"
+
+    session = create_scrape_session(db, user_id=user.id, name=session_name, region=region, keyword=keyword, lead_ids=ids)
+    db.commit()
+    return {"status": "success", "session_id": session.id, "name": session.name}
+
+
+@router.delete("/api/sessions/{session_id}")
+async def session_delete_api(
+    session_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db_api),
+):
+    """수집 세션을 삭제한다."""
+    ok = delete_scrape_session(db, session_id, user.id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다.")
+    db.commit()
+    return {"status": "success"}
+
+
+@router.post("/api/sessions/{session_id}/rename")
+async def session_rename_api(
+    session_id: int,
+    name: str = Form(...),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db_api),
+):
+    """수집 세션 이름을 변경한다."""
+    session = rename_scrape_session(db, session_id, user.id, name.strip())
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다.")
+    db.commit()
+    return {"status": "success", "name": session.name}
 
 
 # --- 검수자 실시간 피드백 챗봇 & 백로그 트래커 API ---
